@@ -21,11 +21,11 @@
   --mono:'DM Mono',monospace;
   --sh:0 1px 4px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.05);
 }
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;line-height:1.6}
-.site-header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;line-height:1.6;-webkit-text-size-adjust:100%}
+.site-header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 1.25rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100}
 .site-logo{font-size:15px;font-weight:500;display:flex;align-items:center;gap:10px}
-.logo-dot{width:10px;height:10px;border-radius:50%;background:var(--accent)}
-.header-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.logo-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.header-right{display:flex;align-items:center;gap:10px}
 .sec-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--accent-t);background:var(--accent-bg);border:1px solid #b0d4c0;border-radius:20px;padding:3px 10px;font-family:var(--mono)}
 #sync-indicator{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
 .sync-dot{width:8px;height:8px;border-radius:50%;background:#ccc;transition:background .3s;flex-shrink:0}
@@ -33,5 +33,537 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .sync-dot.err{background:#e53935}
 .sync-dot.loading{background:#ffa726;animation:pulse 1s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.container{max-width:880px;margin:0 auto;padding:2rem 1.5rem}
-.tabs{display:flex;background:var(--surface);border:1px s
+.container{max-width:880px;margin:0 auto;padding:1.25rem 1rem}
+.tabs{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;width:100%;margin-bottom:1.25rem;box-shadow:var(--sh)}
+.tab{flex:1;padding:11px 12px;font-size:14px;font-weight:500;font-family:var(--font);cursor:pointer;background:transparent;color:var(--muted);border:none;border-right:1px solid var(--border);transition:background .15s,color .15s;text-align:center;min-height:44px}
+.tab:last-child{border-right:none}
+.tab.active{background:var(--accent);color:#fff}
+.tab:hover:not(.active){background:var(--bg);color:var(--text)}
+.section{display:none}
+.section.active{display:block}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1rem 1rem;margin-bottom:1rem;box-shadow:var(--sh)}
+.card-title{font-size:14px;font-weight:500;margin-bottom:.75rem}
+.card-desc{font-size:13px;color:var(--muted);margin-bottom:1rem;line-height:1.6}
+label.lbl{font-size:13px;color:var(--muted);display:block;margin-bottom:5px}
+input[type=text],input[type=email],input[type=date],input[type=time],input[type=password]{
+  height:44px;padding:0 12px;font-size:16px;font-family:var(--font);
+  border:1px solid var(--border);border-radius:var(--rs);
+  background:var(--bg);color:var(--text);width:100%;transition:border-color .15s;
+  -webkit-appearance:none;appearance:none}
+input:focus{outline:none;border-color:var(--accent)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.field{display:flex;flex-direction:column;flex:1;min-width:120px}
+.btn{height:44px;padding:0 18px;font-size:15px;font-weight:500;font-family:var(--font);border-radius:var(--rs);cursor:pointer;transition:all .15s;white-space:nowrap;border:1px solid transparent;min-width:44px;touch-action:manipulation}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-primary:hover{background:var(--accent-t)}
+.btn-primary:disabled{opacity:.6;cursor:not-allowed}
+.btn-ghost{background:transparent;color:var(--muted);border-color:var(--border)}
+.btn-ghost:hover{background:var(--bg);color:var(--text)}
+.btn-warn{background:var(--warn-bg);color:var(--warn);border-color:#e0c080}
+.btn-warn:hover{background:#f5e0b0}
+.btn-sm{height:36px;padding:0 12px;font-size:13px}
+.badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500;display:inline-block;width:fit-content;font-family:var(--mono)}
+.badge-free{background:var(--accent-bg);color:var(--accent-t)}
+.badge-booked{background:var(--info-bg);color:var(--info-t)}
+.badge-blocked{background:var(--warn-bg);color:var(--warn-t)}
+.badge-soon{background:var(--warn-bg);color:var(--warn-t)}
+.badge-past{background:#eee;color:#999}
+.day-group{margin-bottom:1.5rem}
+.day-label{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+.slot{border:1px solid var(--border);border-radius:var(--rs);padding:12px 13px;display:flex;flex-direction:column;gap:6px;background:var(--surface)}
+.slot.booked{background:var(--info-bg);border-color:#b8d0ee}
+.slot.blocked{background:var(--warn-bg);border-color:#e0c888}
+.slot-time{font-size:15px;font-weight:500;font-family:var(--mono)}
+.slot-name{font-size:12px;color:var(--info)}
+.slot-note{font-size:11px;color:var(--hint);font-style:italic}
+.slot-actions{display:flex;gap:5px;margin-top:3px;flex-wrap:wrap}
+.book-form{display:none;flex-direction:column;gap:8px;margin-top:6px}
+.book-form.open{display:flex}
+.book-form input{font-size:16px;height:44px}
+.book-form .btn{width:100%;justify-content:center}
+.notice-box{border:1px solid #e0c080;border-radius:var(--rs);background:var(--warn-bg);padding:10px 13px;font-size:13px;color:var(--warn-t);line-height:1.7;margin-top:5px}
+.notice-box a{color:var(--warn);font-weight:500;word-break:break-all}
+.metrics{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:.75rem 1rem;flex:1;min-width:70px;box-shadow:var(--sh)}
+.metric-val{font-size:22px;font-weight:500;font-family:var(--mono);color:var(--text)}
+.metric-lbl{font-size:10px;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.05em}
+.info-bar{background:var(--accent-bg);border:1px solid #b0d4c0;border-radius:var(--rs);padding:9px 13px;font-size:12px;color:var(--accent-t);margin-bottom:1rem;line-height:1.6}
+.toast{font-size:13px;padding:10px 14px;border-radius:var(--rs);margin-top:10px;line-height:1.5}
+.toast-ok{background:var(--accent-bg);color:var(--accent-t);border:1px solid #b0d4c0}
+.toast-err{background:var(--danger-bg);color:var(--danger);border:1px solid #e8b0b0}
+.cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#pw-overlay{position:fixed;inset:0;background:rgba(245,243,238,.97);display:none;align-items:center;justify-content:center;z-index:999;backdrop-filter:blur(4px);padding:1rem}
+.pw-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;width:100%;max-width:340px;box-shadow:var(--sh)}
+.pw-title{font-size:16px;font-weight:500;margin-bottom:.5rem}
+.pw-sub{font-size:13px;color:var(--muted);margin-bottom:1.25rem;line-height:1.6}
+.eltern-header{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1rem;margin-bottom:1rem;box-shadow:var(--sh)}
+.eltern-title{font-size:20px;font-weight:500;margin-bottom:4px}
+.eltern-sub{font-size:13px;color:var(--muted)}
+.spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:-2px;margin-right:5px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{font-size:13px;color:var(--muted);font-style:italic;padding:.5rem 0}
+@media(max-width:600px){
+  .sec-badge{display:none}
+  #sync-label{display:none}
+  .cfg-grid{grid-template-columns:1fr}
+  .slot-grid{grid-template-columns:1fr 1fr}
+  .slot-time{font-size:14px}
+  .row{flex-direction:column}
+  .row .btn{width:100%}
+  .field{min-width:unset;width:100%}
+}
+@media(max-width:380px){
+  .slot-grid{grid-template-columns:1fr}
+  .tabs .tab{font-size:13px;padding:11px 8px}
+}
+</style>
+</head>
+<body>
+
+<div id="pw-overlay">
+  <div class="pw-box">
+    <div class="pw-title">🔒 Lehreransicht</div>
+    <div class="pw-sub">Bitte Passwort eingeben. Es dient gleichzeitig als Verschlüsselungsschlüssel — Namen werden erst nach Anmeldung lesbar.</div>
+    <div class="field" style="margin-bottom:12px">
+      <label class="lbl">Passwort</label>
+      <input type="password" id="pw-input" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkPw()"/>
+    </div>
+    <button class="btn btn-primary" style="width:100%" onclick="checkPw()">Anmelden</button>
+    <div id="pw-msg"></div>
+  </div>
+</div>
+
+<header class="site-header">
+  <div class="site-logo"><div class="logo-dot"></div>Elterngespräche</div>
+  <div class="header-right">
+    <span class="sec-badge">🔐 AES-256 verschlüsselt</span>
+    <div id="sync-indicator">
+      <div class="sync-dot loading" id="sync-dot"></div>
+      <span id="sync-label">Verbinde…</span>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('eltern')">👤 Elternansicht</button>
+    <button class="tab" id="tab-lehrer" onclick="requestLehrer()">👥 Lehreransicht</button>
+  </div>
+
+  <div class="section active" id="sec-eltern">
+    <div class="eltern-header">
+      <div class="eltern-title">Termin vereinbaren</div>
+      <div class="eltern-sub">Wählen Sie einen freien Termin und tragen Sie Ihren Namen ein. Belegte Termine können nicht gebucht werden.</div>
+    </div>
+    <div id="eltern-slots"></div>
+    <div id="book-msg"></div>
+  </div>
+
+  <div class="section" id="sec-lehrer">
+    <div class="card">
+      <div class="card-title">🔗 Firebase-Verbindung</div>
+      <div class="card-desc">Daten aus Ihrem Firebase-Projekt (Firestore). Werden verschlüsselt lokal gespeichert.</div>
+      <div class="cfg-grid">
+        <div class="field">
+          <label class="lbl">API Key</label>
+          <input type="password" id="cfg-fb-apikey" placeholder="AIzaSy…" oninput="saveCfg()"/>
+        </div>
+        <div class="field">
+          <label class="lbl">Project ID</label>
+          <input type="text" id="cfg-fb-projectid" placeholder="mein-projekt-12345" oninput="saveCfg()"/>
+        </div>
+        <div class="field">
+          <label class="lbl">App ID</label>
+          <input type="text" id="cfg-fb-appid" placeholder="1:123…:web:abc…" oninput="saveCfg()"/>
+        </div>
+      </div>
+      <button class="btn btn-primary" style="margin-top:4px" onclick="initFirebase()">🔗 Verbinden / Neu verbinden</button>
+      <div id="fb-msg"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📬 Benachrichtigungen</div>
+      <div class="cfg-grid">
+        <div class="field">
+          <label class="lbl">Meine E-Mail-Adresse</label>
+          <input type="email" id="cfg-email" placeholder="name@schule.de" oninput="saveCfg()"/>
+        </div>
+        <div class="field">
+          <label class="lbl">EmailJS – Service-ID</label>
+          <input type="text" id="cfg-ejs-service" placeholder="service_xxxxxxx" oninput="saveCfg()"/>
+        </div>
+        <div class="field">
+          <label class="lbl">EmailJS – Template-ID</label>
+          <input type="text" id="cfg-ejs-template" placeholder="template_xxxxxxx" oninput="saveCfg()"/>
+        </div>
+        <div class="field">
+          <label class="lbl">EmailJS – Public Key</label>
+          <input type="text" id="cfg-ejs-key" placeholder="xxxxxxxxxxxxxxxxxxxx" oninput="saveCfg()"/>
+        </div>
+        <div class="field">
+          <label class="lbl">Telegram – Bot-Token</label>
+          <input type="password" id="cfg-tg-token" placeholder="123456789:AAxxxxxx…" oninput="saveCfg()"/>
+        </div>
+        <div class="field">
+          <label class="lbl">Telegram – Chat-ID</label>
+          <input type="text" id="cfg-tg-chat" placeholder="-100xxxxxxxxxx" oninput="saveCfg()"/>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔑 Passwort ändern</div>
+      <div class="card-desc">Das Passwort ist gleichzeitig der Verschlüsselungsschlüssel für alle Elternnamen. Nach einer Änderung müssen bestehende Buchungen manuell freigegeben und neu eingetragen werden.</div>
+      <div class="row">
+        <div class="field">
+          <label class="lbl">Neues Passwort (min. 8 Zeichen)</label>
+          <input type="password" id="cfg-pw" placeholder="••••••••"/>
+        </div>
+        <button class="btn btn-warn" onclick="savePw()">Passwort speichern</button>
+      </div>
+      <div id="pw-change-msg"></div>
+    </div>
+
+    <div class="card" style="border-color:#b0d4c0">
+      <div class="card-title">🛡️ Datenschutz</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.7">
+        Alle Elternnamen werden <strong style="color:var(--text)">vor dem Speichern</strong> mit AES-256-GCM verschlüsselt — direkt in Ihrem Browser, bevor sie Firebase erreichen. Firebase und Google sehen ausschließlich unlesbaren Chiffretext. Der Schlüssel wird aus Ihrem Passwort mit PBKDF2 (200.000 Iterationen) abgeleitet und verlässt Ihr Gerät nie. In der Elternansicht sind keinerlei Namen anderer Personen sichtbar.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔒 Termine schnell blocken</div>
+      <div class="card-desc">Alle freien Slots in diesem Zeitfenster werden gesperrt (z.B. für Konferenzen).</div>
+      <div class="row">
+        <div class="field"><label class="lbl">Datum</label><input type="date" id="bl-date"/></div>
+        <div class="field" style="max-width:110px"><label class="lbl">Von</label><input type="time" id="bl-from"/></div>
+        <div class="field" style="max-width:110px"><label class="lbl">Bis</label><input type="time" id="bl-to"/></div>
+        <button class="btn btn-warn" onclick="blockRange()">🔒 Blocken</button>
+      </div>
+      <div id="block-msg"></div>
+    </div>
+
+    <div class="metrics" id="l-metrics"></div>
+    <div class="info-bar">ℹ️ Feiertage und gesperrte Tage sind automatisch ausgeblendet. Eltern können Termine erst ab übermorgen buchen. Morgen-Termine sind als <strong>Kurzfristig</strong> markiert.</div>
+    <div id="lehrer-slots"></div>
+  </div>
+</div>
+
+<script type="module">
+import{initializeApp}             from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import{getFirestore,doc,setDoc,
+  onSnapshot,collection,getDoc}  from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const pad=n=>String(n).padStart(2,'0');
+const dateStr=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const addMin=(hhmm,m)=>{let[h,mn]=hhmm.split(':').map(Number);mn+=m;h+=Math.floor(mn/60);mn%=60;return`${pad(h)}:${pad(mn)}`;};
+const today   =()=>dateStr(new Date());
+const tomorrow=()=>{const d=new Date();d.setDate(d.getDate()+1);return dateStr(d);};
+const safe    =id=>id.replace(/[^a-zA-Z0-9_]/g,'_');
+const WD=['So','Mo','Di','Mi','Do','Fr','Sa'];
+const MO=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const fmtDate =ds=>{const d=new Date(ds+'T12:00:00');return`${WD[d.getDay()]}, ${d.getDate()}. ${MO[d.getMonth()]} 2026`;};
+const groupBy =arr=>{const g={};arr.forEach(s=>{if(!g[s.date])g[s.date]=[];g[s.date].push(s);});return g;};
+const setVal  =(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
+const showMsg =(id,txt,type,ms=6000)=>{
+  const el=document.getElementById(id);if(!el)return;
+  el.innerHTML=`<div class="toast toast-${type==='ok'?'ok':'err'}">${txt}</div>`;
+  if(type==='ok')setTimeout(()=>{if(el)el.innerHTML='';},ms);
+};
+const setSyncState=(state,lbl)=>{
+  const dot=document.getElementById('sync-dot');
+  const l  =document.getElementById('sync-label');
+  if(dot)dot.className='sync-dot '+(state==='live'?'live':state==='err'?'err':'loading');
+  if(l)l.textContent=lbl;
+};
+
+let cryptoKey=null;
+const ENC_SALT=new TextEncoder().encode('elterngespraeche-2026-sachsen');
+
+async function deriveKey(pw){
+  const raw=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt:ENC_SALT,iterations:200000,hash:'SHA-256'},
+    raw,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+
+async function encrypt(txt){
+  if(!cryptoKey)throw new Error('Kein Schlüssel');
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},cryptoKey,new TextEncoder().encode(txt));
+  const buf=new Uint8Array(iv.byteLength+ct.byteLength);
+  buf.set(iv,0);buf.set(new Uint8Array(ct),iv.byteLength);
+  return btoa(String.fromCharCode(...buf));
+}
+
+async function decrypt(b64){
+  if(!cryptoKey)return'(gesperrt)';
+  try{
+    const buf=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
+    const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:buf.slice(0,12)},cryptoKey,buf.slice(12));
+    return new TextDecoder().decode(pt);
+  }catch{return'(Entschlüsselung fehlgeschlagen)';}
+}
+
+const BLOCKED=new Set(['2026-05-14','2026-05-25','2026-06-05','2026-06-08','2026-06-09',
+  '2026-06-11','2026-06-17','2026-06-18','2026-06-19','2026-06-30','2026-07-03']);
+
+function generateSlots(){
+  const slots=[];
+  const end=new Date(2026,6,3);
+  for(let d=new Date(2026,4,18);d<=end;d.setDate(d.getDate()+1)){
+    const ds=dateStr(d);if(BLOCKED.has(ds))continue;
+    const dow=d.getDay();
+    let wins=[];
+    if(dow===1||dow===2)wins=[{from:'13:30',to:'14:30'}];
+    else if(dow===3||dow===4)wins=[{from:'08:30',to:'09:00'}];
+    else if(dow===5)wins=[{from:'08:30',to:'12:00'},{from:'13:30',to:'14:30'}];
+    for(const w of wins){
+      let cur=w.from;
+      while(addMin(cur,30)<=w.to){
+        const nxt=addMin(cur,30);
+        slots.push({id:`${ds}_${cur}`,date:ds,from:cur,to:nxt,booked:false,enc:'',clear:'',blocked:false});
+        cur=nxt;
+      }
+    }
+  }
+  return slots;
+}
+
+const CFG_KEY='eg_cfg_v5';
+const DEFAULT_PW='lehrer2026';
+let slots=generateSlots();
+let cfg={fbKey:'',fbProject:'',fbApp:'',email:'',ejsService:'',ejsTemplate:'',ejsKey:'',tgToken:'',tgChat:'',pw:DEFAULT_PW};
+let pwUnlocked=false,db=null,unsub=null;
+
+function loadCfg(){
+  try{const c=JSON.parse(localStorage.getItem(CFG_KEY)||'{}');cfg={...cfg,...c};}catch(e){}
+  applyConfig();
+}
+function saveCfg(){
+  cfg.fbKey      =document.getElementById('cfg-fb-apikey').value.trim();
+  cfg.fbProject  =document.getElementById('cfg-fb-projectid').value.trim();
+  cfg.fbApp      =document.getElementById('cfg-fb-appid').value.trim();
+  cfg.email      =document.getElementById('cfg-email').value.trim();
+  cfg.ejsService =document.getElementById('cfg-ejs-service').value.trim();
+  cfg.ejsTemplate=document.getElementById('cfg-ejs-template').value.trim();
+  cfg.ejsKey     =document.getElementById('cfg-ejs-key').value.trim();
+  cfg.tgToken    =document.getElementById('cfg-tg-token').value.trim();
+  cfg.tgChat     =document.getElementById('cfg-tg-chat').value.trim();
+  localStorage.setItem(CFG_KEY,JSON.stringify(cfg));
+  if(cfg.ejsKey)emailjs.init(cfg.ejsKey);
+}
+window.saveCfg=saveCfg;
+
+function applyConfig(){
+  setVal('cfg-fb-apikey',cfg.fbKey);setVal('cfg-fb-projectid',cfg.fbProject);
+  setVal('cfg-fb-appid',cfg.fbApp);setVal('cfg-email',cfg.email);
+  setVal('cfg-ejs-service',cfg.ejsService);setVal('cfg-ejs-template',cfg.ejsTemplate);
+  setVal('cfg-ejs-key',cfg.ejsKey);setVal('cfg-tg-token',cfg.tgToken);setVal('cfg-tg-chat',cfg.tgChat);
+  if(cfg.ejsKey)emailjs.init(cfg.ejsKey);
+}
+
+function savePw(){
+  const v=document.getElementById('cfg-pw').value.trim();
+  if(v.length<8){showMsg('pw-change-msg','Mindestens 8 Zeichen erforderlich.','err');return;}
+  cfg.pw=v;localStorage.setItem(CFG_KEY,JSON.stringify(cfg));
+  document.getElementById('cfg-pw').value='';
+  showMsg('pw-change-msg','Passwort gespeichert. Beim nächsten Login wird der neue Schlüssel verwendet.','ok',8000);
+}
+window.savePw=savePw;
+
+async function initFirebase(){
+  if(!cfg.fbKey||!cfg.fbProject||!cfg.fbApp){showMsg('fb-msg','Bitte API Key, Project ID und App ID eingeben.','err');return;}
+  try{
+    setSyncState('loading','Verbinde…');
+    const app=initializeApp({apiKey:cfg.fbKey,authDomain:`${cfg.fbProject}.firebaseapp.com`,projectId:cfg.fbProject,appId:cfg.fbApp},'eg-'+Date.now());
+    db=getFirestore(app);
+    if(unsub)unsub();
+    unsub=onSnapshot(collection(db,'slots'),async snap=>{
+      const gen=generateSlots();
+      const remote={};snap.forEach(d=>{remote[d.id]=d.data();});
+      slots=await Promise.all(gen.map(async g=>{
+        const r=remote[g.id];if(!r)return g;
+        let clear='';
+        if(r.enc&&cryptoKey)clear=await decrypt(r.enc);
+        return{...g,booked:!!r.booked,enc:r.enc||'',clear,blocked:!!r.blocked};
+      }));
+      setSyncState('live','Live-Synchronisation');
+      render();
+    },err=>{setSyncState('err','Verbindungsfehler');console.error(err);});
+    showMsg('fb-msg','Firebase verbunden. Daten werden live synchronisiert.','ok');
+  }catch(e){setSyncState('err','Fehler');showMsg('fb-msg','Firebase-Fehler: '+e.message,'err');}
+}
+window.initFirebase=initFirebase;
+
+async function writeSlot(s){
+  if(!db)return;
+  await setDoc(doc(db,'slots',s.id),{booked:s.booked,enc:s.enc,blocked:s.blocked,date:s.date,from:s.from,to:s.to});
+}
+
+function requestLehrer(){if(pwUnlocked){activateLehrer();return;}document.getElementById('pw-overlay').style.display='flex';setTimeout(()=>document.getElementById('pw-input').focus(),50);}
+window.requestLehrer=requestLehrer;
+
+async function checkPw(){
+  const val=document.getElementById('pw-input').value;
+  if(val!==cfg.pw){document.getElementById('pw-msg').innerHTML='<div class="toast toast-err" style="margin-top:10px">Falsches Passwort.</div>';return;}
+  document.getElementById('pw-overlay').style.display='none';
+  document.getElementById('pw-input').value='';
+  pwUnlocked=true;
+  cryptoKey=await deriveKey(val);
+  slots=await Promise.all(slots.map(async s=>{
+    if(s.enc)s.clear=await decrypt(s.enc);return s;
+  }));
+  activateLehrer();
+  if(cfg.fbKey&&!db)initFirebase();
+}
+window.checkPw=checkPw;
+
+function activateLehrer(){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('tab-lehrer').classList.add('active');
+  document.getElementById('sec-lehrer').classList.add('active');
+}
+function switchTab(tab){
+  if(tab==='lehrer'){requestLehrer();return;}
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab')[0].classList.add('active');
+  document.getElementById('sec-eltern').classList.add('active');
+}
+window.switchTab=switchTab;
+
+async function blockRange(){
+  const date=document.getElementById('bl-date').value;
+  const from=document.getElementById('bl-from').value;
+  const to=document.getElementById('bl-to').value;
+  if(!date||!from||!to){showMsg('block-msg','Bitte Datum und Uhrzeiten angeben.','err');return;}
+  if(from>=to){showMsg('block-msg','Endzeit muss nach Startzeit liegen.','err');return;}
+  let count=0;
+  for(const s of slots){if(s.date===date&&s.from>=from&&s.to<=to&&!s.booked){s.blocked=true;count++;await writeSlot(s);}}
+  showMsg('block-msg',count>0?`${count} Termin(e) geblockt.`:'Keine passenden freien Termine gefunden.',count>0?'ok':'err');
+  render();
+}
+window.blockRange=blockRange;
+
+async function manualBlock(id){const s=slots.find(s=>s.id===id);if(!s)return;s.blocked=true;await writeSlot(s);render();}
+window.manualBlock=manualBlock;
+async function unblockSlot(id){const s=slots.find(s=>s.id===id);if(!s)return;s.blocked=false;await writeSlot(s);render();}
+window.unblockSlot=unblockSlot;
+async function freeSlot(id){const s=slots.find(s=>s.id===id);if(!s)return;s.booked=false;s.enc='';s.clear='';await writeSlot(s);render();}
+window.freeSlot=freeSlot;
+
+function showBookForm(sid){
+  document.querySelectorAll('.book-form').forEach(f=>f.classList.remove('open'));
+  const f=document.getElementById('bf-'+sid);if(f){f.classList.add('open');f.querySelector('input').focus();}
+}
+window.showBookForm=showBookForm;
+
+async function bookSlot(id){
+  if(!db){showMsg('book-msg','Die Datenbank ist nicht erreichbar. Bitte Seite neu laden.','err');return;}
+  const sid=safe(id);
+  const inp=document.getElementById('bi-'+sid);
+  const btn=document.getElementById('bb-'+sid);
+  const name=(inp?inp.value.trim():'');
+  if(!name){showMsg('book-msg','Bitte geben Sie Ihren Namen ein.','err');return;}
+  const s=slots.find(s=>s.id===id);
+  if(!s||s.booked||s.blocked)return;
+  const snap=await getDoc(doc(db,'slots',id));
+  if(snap.exists()&&snap.data().booked){showMsg('book-msg','Dieser Termin wurde soeben vergeben. Bitte wählen Sie einen anderen.','err');return;}
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Wird gespeichert…';}
+  const enc=await encrypt(name);
+  s.booked=true;s.enc=enc;s.clear=name;
+  await writeSlot(s);
+  await sendNotifications(s,name);
+  showMsg('book-msg',`Ihr Termin am ${fmtDate(s.date)}, ${s.from}–${s.to} Uhr wurde gebucht. Vielen Dank!`,'ok',10000);
+  render();
+}
+window.bookSlot=bookSlot;
+
+async function sendNotifications(slot,name){
+  await Promise.allSettled([sendEmail(slot,name),sendTelegram(slot,name)]);
+}
+async function sendEmail(slot,name){
+  if(!cfg.ejsService||!cfg.ejsTemplate||!cfg.ejsKey)return;
+  try{await emailjs.send(cfg.ejsService,cfg.ejsTemplate,{to_email:cfg.email,parent_name:name,date_label:fmtDate(slot.date),time_from:slot.from,time_to:slot.to});}
+  catch(e){console.error('EmailJS:',e);}
+}
+async function sendTelegram(slot,name){
+  if(!cfg.tgToken||!cfg.tgChat)return;
+  const text=`📅 <b>Neuer Termin gebucht</b>\n\n👤 ${name}\n📆 ${fmtDate(slot.date)}\n🕐 ${slot.from}–${slot.to} Uhr`;
+  try{await fetch(`https://api.telegram.org/bot${cfg.tgToken}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:cfg.tgChat,text,parse_mode:'HTML'})});}
+  catch(e){console.error('Telegram:',e);}
+}
+
+const slotStatus=s=>{
+  if(s.booked)return'booked';if(s.blocked)return'blocked';
+  if(s.date<=today())return'past';if(s.date===tomorrow())return'soon';return'free';
+};
+
+function render(){renderLehrer();renderEltern();}
+
+function renderLehrer(){
+  const total=slots.length,booked=slots.filter(s=>s.booked).length,
+    blocked=slots.filter(s=>s.blocked&&!s.booked).length,free=total-booked-blocked;
+  document.getElementById('l-metrics').innerHTML=`
+    <div class="metric"><div class="metric-val">${total}</div><div class="metric-lbl">Gesamt</div></div>
+    <div class="metric"><div class="metric-val">${free}</div><div class="metric-lbl">Frei</div></div>
+    <div class="metric"><div class="metric-val">${booked}</div><div class="metric-lbl">Belegt</div></div>
+    <div class="metric"><div class="metric-val">${blocked}</div><div class="metric-lbl">Geblockt</div></div>`;
+  const el=document.getElementById('lehrer-slots');
+  const groups=groupBy(slots);let html='';
+  Object.keys(groups).sort().forEach(date=>{
+    html+=`<div class="day-group"><div class="day-label">${fmtDate(date)}</div><div class="slot-grid">`;
+    groups[date].forEach(s=>{
+      const st=slotStatus(s);let badge='',extra='',actions='';
+      if(st==='booked'){badge=`<span class="badge badge-booked">Belegt</span>`;extra=`<span class="slot-name">👤 ${s.clear||'…'}</span>`;actions=`<div class="slot-actions"><button class="btn btn-ghost btn-sm" onclick="freeSlot('${s.id}')">Freigeben</button></div>`;}
+      else if(st==='blocked'){badge=`<span class="badge badge-blocked">Geblockt</span>`;actions=`<div class="slot-actions"><button class="btn btn-ghost btn-sm" onclick="unblockSlot('${s.id}')">Freigeben</button></div>`;}
+      else if(st==='soon'){badge=`<span class="badge badge-soon">Kurzfristig</span>`;extra=`<span class="slot-note">Eltern können nicht selbst buchen</span>`;actions=`<div class="slot-actions"><button class="btn btn-warn btn-sm" onclick="manualBlock('${s.id}')">Blocken</button></div>`;}
+      else if(st==='past'){badge=`<span class="badge badge-past">Vergangen</span>`;}
+      else{badge=`<span class="badge badge-free">Frei</span>`;actions=`<div class="slot-actions"><button class="btn btn-warn btn-sm" onclick="manualBlock('${s.id}')">Blocken</button></div>`;}
+      html+=`<div class="slot ${st}"><div class="slot-time">${s.from}–${s.to}</div>${badge}${extra}${actions}</div>`;
+    });
+    html+=`</div></div>`;
+  });
+  el.innerHTML=html||'<p class="empty">Keine Termine vorhanden.</p>';
+}
+
+function renderEltern(){
+  const el=document.getElementById('eltern-slots');
+  const groups=groupBy(slots);let html='';
+  Object.keys(groups).sort().forEach(date=>{
+    if(date<=today())return;
+    html+=`<div class="day-group"><div class="day-label">${fmtDate(date)}</div><div class="slot-grid">`;
+    groups[date].forEach(s=>{
+      const sid=safe(s.id);
+      if(s.booked){html+=`<div class="slot booked"><div class="slot-time">${s.from}–${s.to}</div><span class="badge badge-booked">Belegt</span><span style="font-size:12px;color:var(--hint);font-style:italic">Termin vergeben</span></div>`;}
+      else if(s.blocked){html+=`<div class="slot blocked"><div class="slot-time">${s.from}–${s.to}</div><span class="badge badge-blocked">Nicht verfügbar</span></div>`;}
+      else if(date===tomorrow()){
+        const eLink=cfg.email?`<a href="mailto:${cfg.email}?subject=Anfrage%20Elterngespräch%20${date}&body=Sehr%20geehrte%20Lehrkraft%2C%0A%0Aich%20möchte%20fragen%2C%20ob%20der%20Termin%20am%20${date}%20von%20${s.from}%20bis%20${s.to}%20Uhr%20noch%20frei%20ist.%0A%0AMit%20freundlichen%20Grüßen">${cfg.email}</a>`:'Ihrer Lehrkraft';
+        html+=`<div class="slot"><div class="slot-time">${s.from}–${s.to}</div><span class="badge badge-soon">Kurzfristig</span><div class="notice-box">Dieser Termin findet bereits morgen statt und kann aus schulplanerischen Gründen nicht online gebucht werden.<br><br>Bei Interesse wenden Sie sich bitte per E-Mail an ${eLink}</div></div>`;
+      }else{
+        html+=`<div class="slot free"><div class="slot-time">${s.from}–${s.to}</div><span class="badge badge-free">Frei</span>
+          <button class="btn btn-ghost btn-sm" style="margin-top:5px;width:100%" onclick="showBookForm('${sid}')">Termin buchen</button>
+          <div class="book-form" id="bf-${sid}">
+            <input type="text" id="bi-${sid}" placeholder="Ihr Name (Vorname Nachname)"/>
+            <button class="btn btn-primary btn-sm" id="bb-${sid}" onclick="bookSlot('${s.id}')">Bestätigen</button>
+          </div></div>`;
+      }
+    });
+    html+=`</div></div>`;
+  });
+  el.innerHTML=html||'<p class="empty">Aktuell sind keine buchbaren Termine verfügbar.</p>';
+}
+
+/* ── Init ── */
+loadCfg();
+render();
+if(cfg.fbKey&&cfg.fbProject&&cfg.fbApp){
+  initFirebase();
+}else{
+  setSyncState('err','Keine Firebase-Konfiguration');
+}
+</script>
+</body>
+</html>
