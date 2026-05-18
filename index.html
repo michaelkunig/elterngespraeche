@@ -287,12 +287,20 @@ async function encrypt(txt){
 }
 
 async function decrypt(b64){
-  if(!cryptoKey)return'(gesperrt)';
-  try{
-    const buf=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
-    const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:buf.slice(0,12)},cryptoKey,buf.slice(12));
-    return new TextDecoder().decode(pt);
-  }catch{return'(Entschlüsselung fehlgeschlagen)';}
+  if(!b64)return'';
+  // Versuche AES-GCM Entschlüsselung (verschlüsselte Einträge, 12-Byte-IV vorne)
+  if(cryptoKey){
+    try{
+      const buf=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
+      // AES-GCM Ciphertext ist immer deutlich länger als Klartext-Base64
+      if(buf.length>12){
+        const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:buf.slice(0,12)},cryptoKey,buf.slice(12));
+        return new TextDecoder().decode(pt);
+      }
+    }catch(e){}
+  }
+  // Fallback: Base64-kodierter Klartext (von Eltern ohne Login gespeichert)
+  try{ return decodeURIComponent(escape(atob(b64))); }catch(e){ return b64; }
 }
 
 /* ── Slot-Generierung ── */
@@ -473,11 +481,22 @@ async function bookSlot(id){
   const snap=await getDoc(doc(db,'slots',id));
   if(snap.exists()&&snap.data().booked){showMsg('book-msg','Dieser Termin wurde soeben vergeben. Bitte wählen Sie einen anderen.','err');return;}
   if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Wird gespeichert…';}
-  const enc=await encrypt(name);
+  // Verschlüsseln nur wenn Lehrer eingeloggt, sonst Klartext speichern
+  let enc='';
+  try{ enc = cryptoKey ? await encrypt(name) : btoa(unescape(encodeURIComponent(name))); }
+  catch(e){ enc = btoa(unescape(encodeURIComponent(name))); }
   s.booked=true;s.enc=enc;s.clear=name;
-  await writeSlot(s);
-  await sendNotifications(s,name);
-  showMsg('book-msg',`Ihr Termin am ${fmtDate(s.date)}, ${s.from}–${s.to} Uhr wurde gebucht. Vielen Dank!`,'ok',10000);
+  try{
+    await writeSlot(s);
+    await sendNotifications(s,name);
+    showMsg('book-msg',`Ihr Termin am ${fmtDate(s.date)}, ${s.from}–${s.to} Uhr wurde gebucht. Vielen Dank!`,'ok',10000);
+  }catch(e){
+    // Buchung lokal zurücksetzen bei Fehler
+    s.booked=false;s.enc='';s.clear='';
+    if(btn){btn.disabled=false;btn.innerHTML='Bestätigen';}
+    showMsg('book-msg','Fehler beim Speichern: '+e.message+' — Bitte Seite neu laden und erneut versuchen.','err');
+    return;
+  }
   render();
 }
 window.bookSlot=bookSlot;
