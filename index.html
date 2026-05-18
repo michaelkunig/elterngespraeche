@@ -123,15 +123,9 @@ input:focus{outline:none;border-color:var(--accent)}
 .cal-wrap{
   background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
   box-shadow:var(--sh);overflow:hidden;
-  width:120px;
   transition:width .25s ease, box-shadow .25s ease;
-  cursor:pointer;
 }
-.cal-outer:hover .cal-wrap, .cal-wrap:focus-within{
-  width:min(320px,100vw - 2rem);
-  box-shadow:0 4px 24px rgba(0,0,0,.13);
-  cursor:default;
-}
+/* Expand via JS-Klasse */
 .cal-inner{padding:.65rem .65rem .5rem;min-width:300px}
 .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem}
 .cal-title{font-size:13px;font-weight:500;white-space:nowrap}
@@ -144,7 +138,7 @@ input:focus{outline:none;border-color:var(--accent)}
 .cal-day.empty{background:transparent;border-color:transparent}
 .cal-day.past{color:var(--hint)}
 .cal-day.no-slot{color:var(--hint)}
-.cal-day.free{background:var(--accent-bg);color:var(--accent-t);border-color:#b0d4c0;cursor:pointer;font-weight:600}
+.cal-day.free{background:var(--accent-bg);color:var(--accent-t);border-color:#b0d4c0;cursor:pointer;font-weight:600;position:relative;z-index:10}
 .cal-day.free:hover{background:#c8e6d4}
 .cal-day.full{background:#F0F0F0;color:var(--hint)}
 .cal-day.today{border-color:var(--accent)!important;font-weight:700}
@@ -153,15 +147,19 @@ input:focus{outline:none;border-color:var(--accent)}
 .cal-leg-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--muted)}
 .cal-leg-dot{width:9px;height:9px;border-radius:3px;flex-shrink:0}
 /* Mini-Ansicht: zeige nur Titelzeile wenn klein */
-.cal-wrap:not(:hover):not(:focus-within) .cal-inner{
+/* Minimiert-Zustand via JS-Klasse */
+.cal-wrap.minimized .cal-inner{
   display:flex;align-items:center;justify-content:center;
   min-width:unset;padding:.4rem .5rem;
 }
-.cal-wrap:not(:hover):not(:focus-within) .cal-header{margin:0;width:100%}
-.cal-wrap:not(:hover):not(:focus-within) .cal-nav{display:none}
-.cal-wrap:not(:hover):not(:focus-within) .cal-grid,
-.cal-wrap:not(:hover):not(:focus-within) .cal-legend{display:none}
-.cal-wrap:not(:hover):not(:focus-within) .cal-title{font-size:11px;text-align:center;width:100%}
+.cal-wrap.minimized .cal-header{margin:0;width:100%}
+.cal-wrap.minimized .cal-nav{display:none}
+.cal-wrap.minimized .cal-grid,
+.cal-wrap.minimized .cal-legend{display:none}
+.cal-wrap.minimized .cal-title{font-size:11px;text-align:center;width:100%}
+/* Expanded */
+.cal-wrap:not(.minimized){width:min(320px,100vw - 2rem);box-shadow:0 4px 24px rgba(0,0,0,.13);cursor:default;}
+.cal-wrap.minimized{width:120px;cursor:pointer;}
 </style>
 </head>
 <body>
@@ -264,6 +262,13 @@ input:focus{outline:none;border-color:var(--accent)}
     </div>
 
     <div class="card">
+      <div class="card-title">🧪 E-Mail testen</div>
+      <div class="card-desc">Sendet eine Test-Benachrichtigung an Ihre E-Mail-Adresse.</div>
+      <button class="btn btn-ghost" onclick="testEmail()">Test-E-Mail senden</button>
+      <div id="test-email-msg"></div>
+    </div>
+
+    <div class="card">
       <div class="card-title">🔑 Passwort ändern</div>
       <div class="card-desc">Das Passwort ist gleichzeitig der Verschlüsselungsschlüssel für alle Elternnamen. Nach einer Änderung müssen bestehende Buchungen manuell freigegeben und neu eingetragen werden.</div>
       <div class="row">
@@ -296,7 +301,7 @@ input:focus{outline:none;border-color:var(--accent)}
     </div>
 
     <div class="metrics" id="l-metrics"></div>
-    <div class="info-bar">ℹ️ Feiertage und gesperrte Tage sind automatisch ausgeblendet. Eltern können Termine erst ab dem übernächsten Tag buchen. Heutige und morgige Termine sind als <strong>Kurzfristig</strong> markiert.</div>
+    <div class="info-bar">ℹ️ Feiertage und gesperrte Tage sind automatisch ausgeblendet. Eltern können Termine erst ab dem 4. Tag buchen (z.B. Montag → frühestens Donnerstag). Frühere Termine sind als <strong>Kurzfristig</strong> markiert.</div>
     <div id="lehrer-slots"></div>
   </div>
 </div>
@@ -312,7 +317,7 @@ const dateStr=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`
 const addMin=(hhmm,m)=>{let[h,mn]=hhmm.split(':').map(Number);mn+=m;h+=Math.floor(mn/60);mn%=60;return`${pad(h)}:${pad(mn)}`;};
 const today   =()=>dateStr(new Date());
 const tomorrow=()=>{const d=new Date();d.setDate(d.getDate()+1);return dateStr(d);};
-const dayAfterTomorrow=()=>{const d=new Date();d.setDate(d.getDate()+2);return dateStr(d);};
+const minBookDate=()=>{const d=new Date();d.setDate(d.getDate()+3);return dateStr(d);};
 const safe    =id=>id.replace(/[^a-zA-Z0-9_]/g,'_');
 const WD=['So','Mo','Di','Mi','Do','Fr','Sa'];
 const MO=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
@@ -398,17 +403,28 @@ const CFG_KEY='eg_cfg_v5';
 const FB_API_KEY='AIzaSyCymNIk61jArQSGWoDxUqwAjTcG9DJv1Zc';
 const FB_PROJECT='terminkalender-kunig';
 const FB_APP_ID='1:672118220933:web:ef88875d76d6f5e3cc61ec';
+const EJS_SERVICE ='service_fd2s3ql';
+const EJS_TEMPLATE='template_43lOj2n';
+const EJS_KEY     ='jtJjVRRVqYrKCCDpw';
+const NOTIFY_EMAIL='michaelkunig22@gmail.com';
 const DEFAULT_PW='lehrer2026';
 let slots=generateSlots();
-let cfg={fbKey:FB_API_KEY,fbProject:FB_PROJECT,fbApp:FB_APP_ID,email:'',ejsService:'',ejsTemplate:'',ejsKey:'',tgToken:'',tgChat:'',pw:DEFAULT_PW};
+let cfg={fbKey:FB_API_KEY,fbProject:FB_PROJECT,fbApp:FB_APP_ID,email:NOTIFY_EMAIL,ejsService:EJS_SERVICE,ejsTemplate:EJS_TEMPLATE,ejsKey:EJS_KEY,tgToken:'',tgChat:'',pw:DEFAULT_PW};
 let pwUnlocked=false,db=null,unsub=null;
 
 /* ── Config ── */
 function loadCfg(){
-  try{const c=JSON.parse(localStorage.getItem(CFG_KEY)||'{}');cfg={...cfg,...c};}catch(e){}
+  try{
+    const c=JSON.parse(localStorage.getItem(CFG_KEY)||'{}');
+    // Nur Passwort, Telegram und optionale Überschreibungen aus localStorage laden
+    // Feste Werte (E-Mail, EmailJS) bleiben erhalten
+    if(c.pw)cfg.pw=c.pw;
+    if(c.tgToken)cfg.tgToken=c.tgToken;
+    if(c.tgChat)cfg.tgChat=c.tgChat;
+  }catch(e){}
   applyConfig();
-  // EmailJS sofort initialisieren falls Key vorhanden
-  if(cfg.ejsKey){try{emailjs.init(cfg.ejsKey);}catch(e){}}
+  // EmailJS sofort initialisieren
+  try{emailjs.init(cfg.ejsKey);}catch(e){console.warn('EmailJS init:',e);}
 }
 function saveCfg(){
   cfg.fbKey      =document.getElementById('cfg-fb-apikey').value.trim();
@@ -580,10 +596,49 @@ window.bookSlot=bookSlot;
 async function sendNotifications(slot,name){
   await Promise.allSettled([sendEmail(slot,name),sendTelegram(slot,name)]);
 }
+async function testEmail(){
+  const msgEl=document.getElementById('test-email-msg');
+  if(msgEl)msgEl.innerHTML='<div class="toast toast-ok">Wird gesendet…</div>';
+  try{
+    emailjs.init(cfg.ejsKey);
+    const result=await emailjs.send(cfg.ejsService,cfg.ejsTemplate,{
+      to_email:    cfg.email,
+      parent_name: 'Testbuchung',
+      date_label:  'Heute',
+      time_from:   '13:30',
+      time_to:     '14:00',
+      subject:     'Test-Benachrichtigung Elterngespräche',
+    });
+    if(msgEl)msgEl.innerHTML='<div class="toast toast-ok">✅ E-Mail gesendet! Status: '+result.status+'</div>';
+  }catch(e){
+    console.error('Test-E-Mail Fehler:',e);
+    if(msgEl)msgEl.innerHTML='<div class="toast toast-err">❌ Fehler: '+e.text+'</div>';
+  }
+}
+window.testEmail=testEmail;
+
 async function sendEmail(slot,name){
-  if(!cfg.ejsService||!cfg.ejsTemplate||!cfg.ejsKey)return;
-  try{await emailjs.send(cfg.ejsService,cfg.ejsTemplate,{to_email:cfg.email,parent_name:name,date_label:fmtDate(slot.date),time_from:slot.from,time_to:slot.to});}
-  catch(e){console.error('EmailJS:',e);}
+  if(!cfg.ejsService||!cfg.ejsTemplate||!cfg.ejsKey||!cfg.email){
+    console.warn('EmailJS: Konfiguration unvollständig',{service:cfg.ejsService,template:cfg.ejsTemplate,key:cfg.ejsKey,email:cfg.email});
+    return;
+  }
+  try{
+    // Key vor jedem Senden neu initialisieren
+    emailjs.init(cfg.ejsKey);
+    const result=await emailjs.send(cfg.ejsService,cfg.ejsTemplate,{
+      to_email:    cfg.email,
+      parent_name: name,
+      date_label:  fmtDate(slot.date),
+      time_from:   slot.from,
+      time_to:     slot.to,
+      subject:     'Neuer Elterngesprächstermin: '+name,
+    });
+    console.log('EmailJS OK:',result.status,result.text);
+  }catch(e){
+    console.error('EmailJS Fehler:',e);
+    // Fehlermeldung auch für Eltern sichtbar machen
+    showMsg('book-msg','Termin gebucht! (E-Mail-Benachrichtigung konnte nicht gesendet werden)','ok',8000);
+  }
 }
 async function sendTelegram(slot,name){
   if(!cfg.tgToken||!cfg.tgChat)return;
@@ -595,7 +650,7 @@ async function sendTelegram(slot,name){
 /* ── Render ── */
 const slotStatus=s=>{
   if(s.booked)return'booked';if(s.blocked)return'blocked';
-  if(s.date<=today())return'past';if(s.date<dayAfterTomorrow())return'soon';return'free';
+  if(s.date<=today())return'past';if(s.date<minBookDate())return'soon';return'free';
 };
 
 
@@ -623,7 +678,7 @@ function renderCal(){
     if(d.getFullYear()===calYear&&d.getMonth()===calMonth){
       if(!slotsByDate[s.date])slotsByDate[s.date]={free:0,total:0};
       slotsByDate[s.date].total++;
-      if(!s.booked&&!s.blocked&&s.date>=dayAfterTomorrow())slotsByDate[s.date].free++;
+      if(!s.booked&&!s.blocked&&s.date>=minBookDate())slotsByDate[s.date].free++;
     }
   });
 
@@ -660,14 +715,35 @@ function renderCal(){
 }
 
 function scrollToDate(ds){
-  // Zum Tag scrollen und nach kurzer Verzögerung (damit Hover-Expand fertig ist) scrollen
-  setTimeout(()=>{
-    const el=document.querySelector(`[data-date="${ds}"]`);
+  // Kalender-Hover kurz schließen erzwingen, dann scrollen
+  const wrap=document.getElementById('cal-wrap');
+  if(wrap)wrap.blur();
+  // Suche im Eltern-Slots-Bereich nach data-date
+  function doScroll(){
+    const el=document.getElementById('eltern-slots').querySelector('[data-date="'+ds+'"]');
     if(el){
       const y=el.getBoundingClientRect().top+window.scrollY-80;
       window.scrollTo({top:y,behavior:'smooth'});
+    } else {
+      // Fallback: Slot existiert vielleicht noch nicht gerendert
+      console.warn('scrollToDate: kein Element für',ds);
     }
-  },50);
+  }
+  // Kleines Timeout damit Transition fertig ist
+  setTimeout(doScroll, 80);
+}
+window.scrollToDate=scrollToDate;
+
+// Kalender Hover-Expand per JS
+function initCalHover(){
+  const wrap=document.getElementById('cal-wrap');
+  if(!wrap)return;
+  wrap.classList.add('minimized');
+  wrap.addEventListener('mouseenter',()=>{wrap.classList.remove('minimized');});
+  wrap.addEventListener('mouseleave',()=>{wrap.classList.add('minimized');});
+  wrap.addEventListener('touchstart',()=>{
+    if(wrap.classList.contains('minimized'))wrap.classList.remove('minimized');
+  },{passive:true});
 }
 
 function render(){renderLehrer();renderEltern();renderCal();}
@@ -708,9 +784,9 @@ function renderEltern(){
       const sid=safe(s.id);
       if(s.booked){html+=`<div class="slot booked"><div class="slot-time">${s.from}–${s.to}</div><span class="badge badge-booked">Belegt</span><span style="font-size:12px;color:var(--hint);font-style:italic">Termin vergeben</span></div>`;}
       else if(s.blocked){html+=`<div class="slot blocked"><div class="slot-time">${s.from}–${s.to}</div><span class="badge badge-blocked">Nicht verfügbar</span></div>`;}
-      else if(date<dayAfterTomorrow()){
+      else if(date<minBookDate()){
         const eLink=cfg.email?`<a href="mailto:${cfg.email}?subject=Anfrage%20Elterngespräch%20${date}&body=Sehr%20geehrte%20Lehrkraft%2C%0A%0Aich%20möchte%20fragen%2C%20ob%20der%20Termin%20am%20${date}%20von%20${s.from}%20bis%20${s.to}%20Uhr%20noch%20frei%20ist.%0A%0AMit%20freundlichen%20Grüßen">${cfg.email}</a>`:'Ihre Lehrkraft';
-        html+=`<div class="slot"><div class="slot-time">${s.from}–${s.to}</div><span class="badge badge-soon">Kurzfristig</span><div class="notice-box">Dieser Termin liegt weniger als 2 Tage in der Zukunft und kann aus schulplanerischen Gründen nicht online gebucht werden.<br><br>Bei Interesse wenden Sie sich bitte per E-Mail an ${eLink}</div></div>`;
+        html+=`<div class="slot"><div class="slot-time">${s.from}–${s.to}</div><span class="badge badge-soon">Kurzfristig</span><div class="notice-box">Dieser Termin liegt weniger als 3 Tage in der Zukunft und kann aus schulplanerischen Gründen nicht online gebucht werden.<br><br>Bei Interesse wenden Sie sich bitte per E-Mail an ${eLink}</div></div>`;
       }else{
         html+=`<div class="slot free"><div class="slot-time">${s.from}–${s.to}</div><span class="badge badge-free">Frei</span>
           <button class="btn btn-ghost btn-sm" style="margin-top:5px;width:100%" onclick="showBookForm('${sid}')">Termin buchen</button>
@@ -739,6 +815,8 @@ loadCfg();
 render();
 // Firebase direkt starten – Zugangsdaten sind fest eingebaut
 initFirebase();
+// Kalender-Hover initialisieren
+setTimeout(initCalHover, 100);
 </script>
 </body>
 </html>
