@@ -118,27 +118,50 @@ input:focus{outline:none;border-color:var(--accent)}
   .tabs .tab{font-size:13px;padding:11px 8px}
 }
 
-/* ── Monatskalender ── */
-.cal-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1rem;margin-bottom:1rem;box-shadow:var(--sh)}
-.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
-.cal-title{font-size:15px;font-weight:500}
-.cal-nav{display:flex;gap:6px}
-.cal-nav button{width:32px;height:32px;border:1px solid var(--border);border-radius:var(--rs);background:transparent;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+/* ── Monatskalender (Mini + Hover-Expand) ── */
+.cal-outer{position:relative;display:flex;justify-content:flex-end;margin-bottom:1rem}
+.cal-wrap{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  box-shadow:var(--sh);overflow:hidden;
+  width:120px;
+  transition:width .25s ease, box-shadow .25s ease;
+  cursor:pointer;
+}
+.cal-outer:hover .cal-wrap, .cal-wrap:focus-within{
+  width:min(320px,100vw - 2rem);
+  box-shadow:0 4px 24px rgba(0,0,0,.13);
+  cursor:default;
+}
+.cal-inner{padding:.65rem .65rem .5rem;min-width:300px}
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem}
+.cal-title{font-size:13px;font-weight:500;white-space:nowrap}
+.cal-nav{display:flex;gap:4px}
+.cal-nav button{width:28px;height:28px;border:1px solid var(--border);border-radius:var(--rs);background:transparent;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
 .cal-nav button:hover{background:var(--bg)}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
-.cal-dow{font-size:10px;font-weight:500;color:var(--hint);text-align:center;padding:4px 0;text-transform:uppercase}
-.cal-day{aspect-ratio:1;border-radius:var(--rs);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;cursor:default;position:relative;border:1px solid transparent}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-dow{font-size:9px;font-weight:500;color:var(--hint);text-align:center;padding:3px 0;text-transform:uppercase}
+.cal-day{aspect-ratio:1;border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;cursor:default;position:relative;border:1px solid transparent}
 .cal-day.empty{background:transparent;border-color:transparent}
-.cal-day.past{color:var(--hint);background:transparent}
-.cal-day.no-slot{color:var(--hint);background:transparent}
-.cal-day.free{background:var(--accent-bg);color:var(--accent-t);border-color:#b0d4c0;cursor:pointer;font-weight:500}
+.cal-day.past{color:var(--hint)}
+.cal-day.no-slot{color:var(--hint)}
+.cal-day.free{background:var(--accent-bg);color:var(--accent-t);border-color:#b0d4c0;cursor:pointer;font-weight:600}
 .cal-day.free:hover{background:#c8e6d4}
 .cal-day.full{background:#F0F0F0;color:var(--hint)}
 .cal-day.today{border-color:var(--accent)!important;font-weight:700}
-.cal-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);margin-top:2px}
-.cal-legend{display:flex;gap:12px;margin-top:8px;flex-wrap:wrap}
-.cal-leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
-.cal-leg-dot{width:10px;height:10px;border-radius:3px}
+.cal-dot{width:4px;height:4px;border-radius:50%;background:var(--accent);margin-top:1px}
+.cal-legend{display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;padding:0 .1rem}
+.cal-leg-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--muted)}
+.cal-leg-dot{width:9px;height:9px;border-radius:3px;flex-shrink:0}
+/* Mini-Ansicht: zeige nur Titelzeile wenn klein */
+.cal-wrap:not(:hover):not(:focus-within) .cal-inner{
+  display:flex;align-items:center;justify-content:center;
+  min-width:unset;padding:.4rem .5rem;
+}
+.cal-wrap:not(:hover):not(:focus-within) .cal-header{margin:0;width:100%}
+.cal-wrap:not(:hover):not(:focus-within) .cal-nav{display:none}
+.cal-wrap:not(:hover):not(:focus-within) .cal-grid,
+.cal-wrap:not(:hover):not(:focus-within) .cal-legend{display:none}
+.cal-wrap:not(:hover):not(:focus-within) .cal-title{font-size:11px;text-align:center;width:100%}
 </style>
 </head>
 <body>
@@ -179,18 +202,22 @@ input:focus{outline:none;border-color:var(--accent)}
       <div class="eltern-title">Termin vereinbaren</div>
       <div class="eltern-sub">Wählen Sie einen freien Termin und tragen Sie Ihren Namen ein. Belegte Termine können nicht gebucht werden.</div>
     </div>
-    <div class="cal-wrap" id="cal-wrap">
-      <div class="cal-header">
-        <div class="cal-title" id="cal-title"></div>
-        <div class="cal-nav">
-          <button onclick="calPrev()">&#8249;</button>
-          <button onclick="calNext()">&#8250;</button>
+    <div class="cal-outer">
+      <div class="cal-wrap" id="cal-wrap" tabindex="0">
+        <div class="cal-inner">
+          <div class="cal-header">
+            <div class="cal-title" id="cal-title">Kalender</div>
+            <div class="cal-nav">
+              <button onclick="calPrev()" title="Vorheriger Monat">&#8249;</button>
+              <button onclick="calNext()" title="Nächster Monat">&#8250;</button>
+            </div>
+          </div>
+          <div class="cal-grid" id="cal-grid"></div>
+          <div class="cal-legend">
+            <div class="cal-leg-item"><div class="cal-leg-dot" style="background:var(--accent-bg);border:1px solid #b0d4c0"></div>Freie Termine</div>
+            <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#F0F0F0"></div>Alle belegt</div>
+          </div>
         </div>
-      </div>
-      <div class="cal-grid" id="cal-grid"></div>
-      <div class="cal-legend">
-        <div class="cal-leg-item"><div class="cal-leg-dot" style="background:var(--accent-bg);border:1px solid #b0d4c0"></div>Freie Termine</div>
-        <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#F0F0F0"></div>Alle belegt</div>
       </div>
     </div>
     <div id="eltern-slots"></div>
@@ -269,7 +296,7 @@ input:focus{outline:none;border-color:var(--accent)}
     </div>
 
     <div class="metrics" id="l-metrics"></div>
-    <div class="info-bar">ℹ️ Feiertage und gesperrte Tage sind automatisch ausgeblendet. Eltern können Termine erst ab übermorgen buchen. Morgen-Termine sind als <strong>Kurzfristig</strong> markiert.</div>
+    <div class="info-bar">ℹ️ Feiertage und gesperrte Tage sind automatisch ausgeblendet. Eltern können Termine erst ab dem übernächsten Tag buchen. Heutige und morgige Termine sind als <strong>Kurzfristig</strong> markiert.</div>
     <div id="lehrer-slots"></div>
   </div>
 </div>
@@ -285,6 +312,7 @@ const dateStr=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`
 const addMin=(hhmm,m)=>{let[h,mn]=hhmm.split(':').map(Number);mn+=m;h+=Math.floor(mn/60);mn%=60;return`${pad(h)}:${pad(mn)}`;};
 const today   =()=>dateStr(new Date());
 const tomorrow=()=>{const d=new Date();d.setDate(d.getDate()+1);return dateStr(d);};
+const dayAfterTomorrow=()=>{const d=new Date();d.setDate(d.getDate()+2);return dateStr(d);};
 const safe    =id=>id.replace(/[^a-zA-Z0-9_]/g,'_');
 const WD=['So','Mo','Di','Mi','Do','Fr','Sa'];
 const MO=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
@@ -379,6 +407,8 @@ let pwUnlocked=false,db=null,unsub=null;
 function loadCfg(){
   try{const c=JSON.parse(localStorage.getItem(CFG_KEY)||'{}');cfg={...cfg,...c};}catch(e){}
   applyConfig();
+  // EmailJS sofort initialisieren falls Key vorhanden
+  if(cfg.ejsKey){try{emailjs.init(cfg.ejsKey);}catch(e){}}
 }
 function saveCfg(){
   cfg.fbKey      =document.getElementById('cfg-fb-apikey').value.trim();
@@ -565,7 +595,7 @@ async function sendTelegram(slot,name){
 /* ── Render ── */
 const slotStatus=s=>{
   if(s.booked)return'booked';if(s.blocked)return'blocked';
-  if(s.date<=today())return'past';if(s.date===tomorrow())return'soon';return'free';
+  if(s.date<=today())return'past';if(s.date<dayAfterTomorrow())return'soon';return'free';
 };
 
 
@@ -593,7 +623,7 @@ function renderCal(){
     if(d.getFullYear()===calYear&&d.getMonth()===calMonth){
       if(!slotsByDate[s.date])slotsByDate[s.date]={free:0,total:0};
       slotsByDate[s.date].total++;
-      if(!s.booked&&!s.blocked&&s.date>todayDs)slotsByDate[s.date].free++;
+      if(!s.booked&&!s.blocked&&s.date>=dayAfterTomorrow())slotsByDate[s.date].free++;
     }
   });
 
@@ -630,9 +660,14 @@ function renderCal(){
 }
 
 function scrollToDate(ds){
-  // Eltern-Slots-Bereich zum Datum scrollen
-  const label=document.querySelector(`[data-date="${ds}"]`);
-  if(label)label.scrollIntoView({behavior:'smooth',block:'start'});
+  // Zum Tag scrollen und nach kurzer Verzögerung (damit Hover-Expand fertig ist) scrollen
+  setTimeout(()=>{
+    const el=document.querySelector(`[data-date="${ds}"]`);
+    if(el){
+      const y=el.getBoundingClientRect().top+window.scrollY-80;
+      window.scrollTo({top:y,behavior:'smooth'});
+    }
+  },50);
 }
 
 function render(){renderLehrer();renderEltern();renderCal();}
@@ -673,9 +708,9 @@ function renderEltern(){
       const sid=safe(s.id);
       if(s.booked){html+=`<div class="slot booked"><div class="slot-time">${s.from}–${s.to}</div><span class="badge badge-booked">Belegt</span><span style="font-size:12px;color:var(--hint);font-style:italic">Termin vergeben</span></div>`;}
       else if(s.blocked){html+=`<div class="slot blocked"><div class="slot-time">${s.from}–${s.to}</div><span class="badge badge-blocked">Nicht verfügbar</span></div>`;}
-      else if(date===tomorrow()){
-        const eLink=cfg.email?`<a href="mailto:${cfg.email}?subject=Anfrage%20Elterngespräch%20${date}&body=Sehr%20geehrte%20Lehrkraft%2C%0A%0Aich%20möchte%20fragen%2C%20ob%20der%20Termin%20am%20${date}%20von%20${s.from}%20bis%20${s.to}%20Uhr%20noch%20frei%20ist.%0A%0AMit%20freundlichen%20Grüßen">${cfg.email}</a>`:'Ihrer Lehrkraft';
-        html+=`<div class="slot"><div class="slot-time">${s.from}–${s.to}</div><span class="badge badge-soon">Kurzfristig</span><div class="notice-box">Dieser Termin findet bereits morgen statt und kann aus schulplanerischen Gründen nicht online gebucht werden.<br><br>Bei Interesse wenden Sie sich bitte per E-Mail an ${eLink}</div></div>`;
+      else if(date<dayAfterTomorrow()){
+        const eLink=cfg.email?`<a href="mailto:${cfg.email}?subject=Anfrage%20Elterngespräch%20${date}&body=Sehr%20geehrte%20Lehrkraft%2C%0A%0Aich%20möchte%20fragen%2C%20ob%20der%20Termin%20am%20${date}%20von%20${s.from}%20bis%20${s.to}%20Uhr%20noch%20frei%20ist.%0A%0AMit%20freundlichen%20Grüßen">${cfg.email}</a>`:'Ihre Lehrkraft';
+        html+=`<div class="slot"><div class="slot-time">${s.from}–${s.to}</div><span class="badge badge-soon">Kurzfristig</span><div class="notice-box">Dieser Termin liegt weniger als 2 Tage in der Zukunft und kann aus schulplanerischen Gründen nicht online gebucht werden.<br><br>Bei Interesse wenden Sie sich bitte per E-Mail an ${eLink}</div></div>`;
       }else{
         html+=`<div class="slot free"><div class="slot-time">${s.from}–${s.to}</div><span class="badge badge-free">Frei</span>
           <button class="btn btn-ghost btn-sm" style="margin-top:5px;width:100%" onclick="showBookForm('${sid}')">Termin buchen</button>
