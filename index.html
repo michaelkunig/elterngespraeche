@@ -151,6 +151,7 @@ input:focus{outline:none;border-color:var(--accent)}
     <button class="tab" id="tab-lehrer" onclick="requestLehrer()">👥 Lehreransicht</button>
   </div>
 
+  <!-- ELTERN -->
   <div class="section active" id="sec-eltern">
     <div class="eltern-header">
       <div class="eltern-title">Termin vereinbaren</div>
@@ -160,25 +161,12 @@ input:focus{outline:none;border-color:var(--accent)}
     <div id="book-msg"></div>
   </div>
 
+  <!-- LEHRER -->
   <div class="section" id="sec-lehrer">
-    <div class="card">
+
+    <div class="card" style="border-color:#b0d4c0">
       <div class="card-title">🔗 Firebase-Verbindung</div>
-      <div class="card-desc">Daten aus Ihrem Firebase-Projekt (Firestore). Werden verschlüsselt lokal gespeichert.</div>
-      <div class="cfg-grid">
-        <div class="field">
-          <label class="lbl">API Key</label>
-          <input type="password" id="cfg-fb-apikey" placeholder="AIzaSy…" oninput="saveCfg()"/>
-        </div>
-        <div class="field">
-          <label class="lbl">Project ID</label>
-          <input type="text" id="cfg-fb-projectid" placeholder="mein-projekt-12345" oninput="saveCfg()"/>
-        </div>
-        <div class="field">
-          <label class="lbl">App ID</label>
-          <input type="text" id="cfg-fb-appid" placeholder="1:123…:web:abc…" oninput="saveCfg()"/>
-        </div>
-      </div>
-      <button class="btn btn-primary" style="margin-top:4px" onclick="initFirebase()">🔗 Verbinden / Neu verbinden</button>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6">Verbindung ist fest konfiguriert und wird automatisch aufgebaut. Keine manuelle Eingabe nötig.</div>
       <div id="fb-msg"></div>
     </div>
 
@@ -255,6 +243,7 @@ import{initializeApp}             from'https://www.gstatic.com/firebasejs/10.12.
 import{getFirestore,doc,setDoc,
   onSnapshot,collection,getDoc}  from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
+/* ── Helpers ── */
 const pad=n=>String(n).padStart(2,'0');
 const dateStr=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const addMin=(hhmm,m)=>{let[h,mn]=hhmm.split(':').map(Number);mn+=m;h+=Math.floor(mn/60);mn%=60;return`${pad(h)}:${pad(mn)}`;};
@@ -278,6 +267,7 @@ const setSyncState=(state,lbl)=>{
   if(l)l.textContent=lbl;
 };
 
+/* ── AES-256-GCM Verschlüsselung ── */
 let cryptoKey=null;
 const ENC_SALT=new TextEncoder().encode('elterngespraeche-2026-sachsen');
 
@@ -305,6 +295,7 @@ async function decrypt(b64){
   }catch{return'(Entschlüsselung fehlgeschlagen)';}
 }
 
+/* ── Slot-Generierung ── */
 const BLOCKED=new Set(['2026-05-14','2026-05-25','2026-06-05','2026-06-08','2026-06-09',
   '2026-06-11','2026-06-17','2026-06-18','2026-06-19','2026-06-30','2026-07-03']);
 
@@ -330,12 +321,17 @@ function generateSlots(){
   return slots;
 }
 
+/* ── State ── */
 const CFG_KEY='eg_cfg_v5';
+const FB_API_KEY='AIzaSyCymNIk61jArQSGWoDxUqwAjTcG9DJv1Zc';
+const FB_PROJECT='terminkalender-kunig';
+const FB_APP_ID='1:672118220933:web:ef88875d76d6f5e3cc61ec';
 const DEFAULT_PW='lehrer2026';
 let slots=generateSlots();
-let cfg={fbKey:'',fbProject:'',fbApp:'',email:'',ejsService:'',ejsTemplate:'',ejsKey:'',tgToken:'',tgChat:'',pw:DEFAULT_PW};
+let cfg={fbKey:FB_API_KEY,fbProject:FB_PROJECT,fbApp:FB_APP_ID,email:'',ejsService:'',ejsTemplate:'',ejsKey:'',tgToken:'',tgChat:'',pw:DEFAULT_PW};
 let pwUnlocked=false,db=null,unsub=null;
 
+/* ── Config ── */
 function loadCfg(){
   try{const c=JSON.parse(localStorage.getItem(CFG_KEY)||'{}');cfg={...cfg,...c};}catch(e){}
   applyConfig();
@@ -372,6 +368,7 @@ function savePw(){
 }
 window.savePw=savePw;
 
+/* ── Firebase ── */
 async function initFirebase(){
   if(!cfg.fbKey||!cfg.fbProject||!cfg.fbApp){showMsg('fb-msg','Bitte API Key, Project ID und App ID eingeben.','err');return;}
   try{
@@ -401,6 +398,7 @@ async function writeSlot(s){
   await setDoc(doc(db,'slots',s.id),{booked:s.booked,enc:s.enc,blocked:s.blocked,date:s.date,from:s.from,to:s.to});
 }
 
+/* ── Passwort & Tabs ── */
 function requestLehrer(){if(pwUnlocked){activateLehrer();return;}document.getElementById('pw-overlay').style.display='flex';setTimeout(()=>document.getElementById('pw-input').focus(),50);}
 window.requestLehrer=requestLehrer;
 
@@ -411,6 +409,7 @@ async function checkPw(){
   document.getElementById('pw-input').value='';
   pwUnlocked=true;
   cryptoKey=await deriveKey(val);
+  // Vorhandene verschlüsselte Namen entschlüsseln
   slots=await Promise.all(slots.map(async s=>{
     if(s.enc)s.clear=await decrypt(s.enc);return s;
   }));
@@ -434,6 +433,7 @@ function switchTab(tab){
 }
 window.switchTab=switchTab;
 
+/* ── Slot-Aktionen ── */
 async function blockRange(){
   const date=document.getElementById('bl-date').value;
   const from=document.getElementById('bl-from').value;
@@ -469,6 +469,7 @@ async function bookSlot(id){
   if(!name){showMsg('book-msg','Bitte geben Sie Ihren Namen ein.','err');return;}
   const s=slots.find(s=>s.id===id);
   if(!s||s.booked||s.blocked)return;
+  // Race-condition-Schutz
   const snap=await getDoc(doc(db,'slots',id));
   if(snap.exists()&&snap.data().booked){showMsg('book-msg','Dieser Termin wurde soeben vergeben. Bitte wählen Sie einen anderen.','err');return;}
   if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Wird gespeichert…';}
@@ -481,6 +482,7 @@ async function bookSlot(id){
 }
 window.bookSlot=bookSlot;
 
+/* ── Benachrichtigungen ── */
 async function sendNotifications(slot,name){
   await Promise.allSettled([sendEmail(slot,name),sendTelegram(slot,name)]);
 }
@@ -496,6 +498,7 @@ async function sendTelegram(slot,name){
   catch(e){console.error('Telegram:',e);}
 }
 
+/* ── Render ── */
 const slotStatus=s=>{
   if(s.booked)return'booked';if(s.blocked)return'blocked';
   if(s.date<=today())return'past';if(s.date===tomorrow())return'soon';return'free';
@@ -546,7 +549,7 @@ function renderEltern(){
         html+=`<div class="slot free"><div class="slot-time">${s.from}–${s.to}</div><span class="badge badge-free">Frei</span>
           <button class="btn btn-ghost btn-sm" style="margin-top:5px;width:100%" onclick="showBookForm('${sid}')">Termin buchen</button>
           <div class="book-form" id="bf-${sid}">
-            <input type="text" id="bi-${sid}" placeholder="Ihr Name (Vorname Nachname)"/>
+            <input type="text" id="bi-${sid}" placeholder="Ihr Name (Vorname Nachname)" style="font-size:13px"/>
             <button class="btn btn-primary btn-sm" id="bb-${sid}" onclick="bookSlot('${s.id}')">Bestätigen</button>
           </div></div>`;
       }
@@ -559,11 +562,8 @@ function renderEltern(){
 /* ── Init ── */
 loadCfg();
 render();
-if(cfg.fbKey&&cfg.fbProject&&cfg.fbApp){
-  initFirebase();
-}else{
-  setSyncState('err','Keine Firebase-Konfiguration');
-}
+// Firebase direkt starten – Zugangsdaten sind fest eingebaut
+initFirebase();
 </script>
 </body>
 </html>
