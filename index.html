@@ -117,6 +117,28 @@ input:focus{outline:none;border-color:var(--accent)}
   .slot-grid{grid-template-columns:1fr}
   .tabs .tab{font-size:13px;padding:11px 8px}
 }
+
+/* ── Monatskalender ── */
+.cal-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1rem;margin-bottom:1rem;box-shadow:var(--sh)}
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.cal-title{font-size:15px;font-weight:500}
+.cal-nav{display:flex;gap:6px}
+.cal-nav button{width:32px;height:32px;border:1px solid var(--border);border-radius:var(--rs);background:transparent;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.cal-nav button:hover{background:var(--bg)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-dow{font-size:10px;font-weight:500;color:var(--hint);text-align:center;padding:4px 0;text-transform:uppercase}
+.cal-day{aspect-ratio:1;border-radius:var(--rs);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;cursor:default;position:relative;border:1px solid transparent}
+.cal-day.empty{background:transparent;border-color:transparent}
+.cal-day.past{color:var(--hint);background:transparent}
+.cal-day.no-slot{color:var(--hint);background:transparent}
+.cal-day.free{background:var(--accent-bg);color:var(--accent-t);border-color:#b0d4c0;cursor:pointer;font-weight:500}
+.cal-day.free:hover{background:#c8e6d4}
+.cal-day.full{background:#F0F0F0;color:var(--hint)}
+.cal-day.today{border-color:var(--accent)!important;font-weight:700}
+.cal-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);margin-top:2px}
+.cal-legend{display:flex;gap:12px;margin-top:8px;flex-wrap:wrap}
+.cal-leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+.cal-leg-dot{width:10px;height:10px;border-radius:3px}
 </style>
 </head>
 <body>
@@ -156,6 +178,20 @@ input:focus{outline:none;border-color:var(--accent)}
     <div class="eltern-header">
       <div class="eltern-title">Termin vereinbaren</div>
       <div class="eltern-sub">Wählen Sie einen freien Termin und tragen Sie Ihren Namen ein. Belegte Termine können nicht gebucht werden.</div>
+    </div>
+    <div class="cal-wrap" id="cal-wrap">
+      <div class="cal-header">
+        <div class="cal-title" id="cal-title"></div>
+        <div class="cal-nav">
+          <button onclick="calPrev()">&#8249;</button>
+          <button onclick="calNext()">&#8250;</button>
+        </div>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="cal-legend">
+        <div class="cal-leg-item"><div class="cal-leg-dot" style="background:var(--accent-bg);border:1px solid #b0d4c0"></div>Freie Termine</div>
+        <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#F0F0F0"></div>Alle belegt</div>
+      </div>
     </div>
     <div id="eltern-slots"></div>
     <div id="book-msg"></div>
@@ -390,7 +426,7 @@ async function initFirebase(){
       slots=await Promise.all(gen.map(async g=>{
         const r=remote[g.id];if(!r)return g;
         let clear='';
-        if(r.enc&&cryptoKey)clear=await decrypt(r.enc);
+        if(r.enc)clear=await decrypt(r.enc);
         return{...g,booked:!!r.booked,enc:r.enc||'',clear,blocked:!!r.blocked};
       }));
       setSyncState('live','Live-Synchronisation');
@@ -421,6 +457,15 @@ async function checkPw(){
   slots=await Promise.all(slots.map(async s=>{
     if(s.enc)s.clear=await decrypt(s.enc);return s;
   }));
+  // Nach Login: alle vorhandenen Einträge neu entschlüsseln
+  if(db){
+    const gen=generateSlots();
+    slots=await Promise.all(slots.map(async s=>{
+      if(s.enc){ s.clear=await decrypt(s.enc); }
+      return s;
+    }));
+    render();
+  }
   activateLehrer();
   if(cfg.fbKey&&!db)initFirebase();
 }
@@ -523,7 +568,74 @@ const slotStatus=s=>{
   if(s.date<=today())return'past';if(s.date===tomorrow())return'soon';return'free';
 };
 
-function render(){renderLehrer();renderEltern();}
+
+/* ── Monatskalender ── */
+let calYear=new Date().getFullYear();
+let calMonth=new Date().getMonth();
+
+function calPrev(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderCal();}
+function calNext(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderCal();}
+window.calPrev=calPrev;window.calNext=calNext;
+
+function renderCal(){
+  const titleEl=document.getElementById('cal-title');
+  const gridEl =document.getElementById('cal-grid');
+  if(!titleEl||!gridEl)return;
+
+  const MO_LONG=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  titleEl.textContent=MO_LONG[calMonth]+' '+calYear;
+
+  const todayDs=today();
+  // Slots dieses Monats gruppiert nach Datum
+  const slotsByDate={};
+  slots.forEach(s=>{
+    const d=new Date(s.date+'T12:00:00');
+    if(d.getFullYear()===calYear&&d.getMonth()===calMonth){
+      if(!slotsByDate[s.date])slotsByDate[s.date]={free:0,total:0};
+      slotsByDate[s.date].total++;
+      if(!s.booked&&!s.blocked&&s.date>todayDs)slotsByDate[s.date].free++;
+    }
+  });
+
+  // Wochentag-Header
+  const DAYS=['Mo','Di','Mi','Do','Fr','Sa','So'];
+  let html=DAYS.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+
+  // Erster Tag des Monats (0=So…6=Sa → umrechnen auf Mo=0)
+  const firstDay=new Date(calYear,calMonth,1).getDay();
+  const startOffset=(firstDay+6)%7; // Mo-basiert
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+
+  for(let i=0;i<startOffset;i++) html+=`<div class="cal-day empty"></div>`;
+
+  for(let day=1;day<=daysInMonth;day++){
+    const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const isToday=ds===todayDs;
+    const info=slotsByDate[ds];
+    let cls='cal-day';
+    let dot='';
+    if(!info){
+      cls+=ds<todayDs?' past':' no-slot';
+    } else if(info.free>0){
+      cls+=' free';
+      dot=`<div class="cal-dot"></div>`;
+    } else {
+      cls+=' full';
+    }
+    if(isToday)cls+=' today';
+    const onclick=info&&info.free>0?`onclick="scrollToDate('${ds}')"`:'' ;
+    html+=`<div class="${cls}" ${onclick}><span>${day}</span>${dot}</div>`;
+  }
+  gridEl.innerHTML=html;
+}
+
+function scrollToDate(ds){
+  // Eltern-Slots-Bereich zum Datum scrollen
+  const label=document.querySelector(`[data-date="${ds}"]`);
+  if(label)label.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function render(){renderLehrer();renderEltern();renderCal();}
 
 function renderLehrer(){
   const total=slots.length,booked=slots.filter(s=>s.booked).length,
@@ -556,7 +668,7 @@ function renderEltern(){
   const groups=groupBy(slots);let html='';
   Object.keys(groups).sort().forEach(date=>{
     if(date<=today())return;
-    html+=`<div class="day-group"><div class="day-label">${fmtDate(date)}</div><div class="slot-grid">`;
+    html+=`<div class="day-group" data-date="${date}"><div class="day-label">${fmtDate(date)}</div><div class="slot-grid">`;
     groups[date].forEach(s=>{
       const sid=safe(s.id);
       if(s.booked){html+=`<div class="slot booked"><div class="slot-time">${s.from}–${s.to}</div><span class="badge badge-booked">Belegt</span><span style="font-size:12px;color:var(--hint);font-style:italic">Termin vergeben</span></div>`;}
@@ -580,6 +692,15 @@ function renderEltern(){
 
 /* ── Init ── */
 loadCfg();
+// Kalender auf ersten Monat mit freien Terminen setzen
+(()=>{
+  const todayDs=today();
+  const firstFree=generateSlots().find(s=>s.date>todayDs&&!s.booked&&!s.blocked);
+  if(firstFree){
+    const d=new Date(firstFree.date+'T12:00:00');
+    calYear=d.getFullYear();calMonth=d.getMonth();
+  }
+})();
 render();
 // Firebase direkt starten – Zugangsdaten sind fest eingebaut
 initFirebase();
