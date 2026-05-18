@@ -118,6 +118,12 @@ input:focus{outline:none;border-color:var(--accent)}
   .tabs .tab{font-size:13px;padding:11px 8px}
 }
 
+/* ── Hinweisfeld ── */
+.notice-banner{background:#FAFAF7;border:1px solid #DDD9D0;border-left:3px solid var(--accent);border-radius:var(--rs);padding:.85rem 1.1rem;margin-bottom:1.25rem;display:flex;gap:10px;align-items:flex-start}
+.notice-banner-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.notice-banner-text{font-size:12px;color:var(--muted);line-height:1.7}
+.notice-banner-text strong{color:var(--text);font-weight:500}
+
 /* ── Monatskalender (Mini + Hover-Expand) ── */
 .cal-outer{position:relative;display:flex;justify-content:flex-end;margin-bottom:1rem}
 .cal-wrap{
@@ -199,6 +205,13 @@ input:focus{outline:none;border-color:var(--accent)}
     <div class="eltern-header">
       <div class="eltern-title">Termin vereinbaren</div>
       <div class="eltern-sub">Wählen Sie einen freien Termin und tragen Sie Ihren Namen ein. Belegte Termine können nicht gebucht werden.</div>
+    </div>
+    <div class="notice-banner">
+      <div class="notice-banner-icon">💡</div>
+      <div class="notice-banner-text">
+        <strong>Hinweis zur Nutzung</strong><br>
+        Dieses Buchungstool befindet sich in der Erprobungsphase und wurde von <strong>Herrn Kunig</strong> persönlich entwickelt, um die Terminvereinbarung für Elterngespräche unkomplizierter zu gestalten. Es handelt sich um keinen offiziellen schulischen Dienst. Das Tool steht derzeit ausschließlich für Gespräche mit Herrn Kunig zur Verfügung. Vielen Dank für Ihr Verständnis und Ihre Geduld beim Ausprobieren! 🙂
+      </div>
     </div>
     <div class="cal-outer">
       <div class="cal-wrap" id="cal-wrap" tabindex="0">
