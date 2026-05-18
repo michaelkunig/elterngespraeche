@@ -403,7 +403,7 @@ function generateSlots(){
       let cur=w.from;
       while(addMin(cur,30)<=w.to){
         const nxt=addMin(cur,30);
-        slots.push({id:`${ds}_${cur}`,date:ds,from:cur,to:nxt,booked:false,enc:'',clear:'',blocked:false});
+        slots.push({id:`${ds}_${cur}`,date:ds,from:cur,to:nxt,booked:false,enc:'',clear:'',grund:'',blocked:false});
         cur=nxt;
       }
     }
@@ -485,7 +485,10 @@ async function initFirebase(){
       slots=await Promise.all(gen.map(async g=>{
         const r=remote[g.id];if(!r)return g;
         let clear='';
-        if(r.enc)clear=await decrypt(r.enc);
+        if(r.enc){
+          const raw=await decrypt(r.enc);
+          try{const p=JSON.parse(raw);clear=p.name||raw;g.grund=p.grund||'';}catch{clear=raw;}
+        }
         return{...g,booked:!!r.booked,enc:r.enc||'',clear,blocked:!!r.blocked};
       }));
       setSyncState('live','Live-Synchronisation');
@@ -520,7 +523,10 @@ async function checkPw(){
   if(db){
     const gen=generateSlots();
     slots=await Promise.all(slots.map(async s=>{
-      if(s.enc){ s.clear=await decrypt(s.enc); }
+      if(s.enc){
+        const raw=await decrypt(s.enc);
+        try{const p=JSON.parse(raw);s.clear=p.name||raw;s.grund=p.grund||'';}catch{s.clear=raw;}
+      }
       return s;
     }));
     render();
@@ -578,7 +584,10 @@ async function bookSlot(id){
   const inp=document.getElementById('bi-'+sid);
   const btn=document.getElementById('bb-'+sid);
   const name=(inp?inp.value.trim():'');
+  const gnd=document.getElementById('bg-'+sid);
+  const grund=(gnd?gnd.value.trim():'');
   if(!name){showMsg('book-msg','Bitte geben Sie Ihren Namen ein.','err');return;}
+  if(!grund){showMsg('book-msg','Bitte geben Sie einen kurzen Gesprächsgrund an.','err');return;}
   const s=slots.find(s=>s.id===id);
   if(!s||s.booked||s.blocked)return;
   // Race-condition-Schutz
@@ -587,9 +596,10 @@ async function bookSlot(id){
   if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Wird gespeichert…';}
   // Verschlüsseln nur wenn Lehrer eingeloggt, sonst Klartext speichern
   let enc='';
-  try{ enc = cryptoKey ? await encrypt(name) : btoa(unescape(encodeURIComponent(name))); }
-  catch(e){ enc = btoa(unescape(encodeURIComponent(name))); }
-  s.booked=true;s.enc=enc;s.clear=name;
+  const payload=JSON.stringify({name,grund});
+  try{ enc = cryptoKey ? await encrypt(payload) : btoa(unescape(encodeURIComponent(payload))); }
+  catch(e){ enc = btoa(unescape(encodeURIComponent(payload))); }
+  s.booked=true;s.enc=enc;s.clear=name;s.grund=grund;
   try{
     await writeSlot(s);
     await sendNotifications(s,name);
@@ -641,6 +651,7 @@ async function sendEmail(slot,name){
     const result=await emailjs.send(cfg.ejsService,cfg.ejsTemplate,{
       to_email:    cfg.email,
       parent_name: name,
+      grund:       grund,
       date_label:  fmtDate(slot.date),
       time_from:   slot.from,
       time_to:     slot.to,
@@ -655,7 +666,7 @@ async function sendEmail(slot,name){
 }
 async function sendTelegram(slot,name){
   if(!cfg.tgToken||!cfg.tgChat)return;
-  const text=`📅 <b>Neuer Termin gebucht</b>\n\n👤 ${name}\n📆 ${fmtDate(slot.date)}\n🕐 ${slot.from}–${slot.to} Uhr`;
+  const text=`📅 <b>Neuer Termin gebucht</b>\n\n👤 ${name}\n💬 ${slot.grund||'–'}\n📆 ${fmtDate(slot.date)}\n🕐 ${slot.from}–${slot.to} Uhr`;
   try{await fetch(`https://api.telegram.org/bot${cfg.tgToken}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:cfg.tgChat,text,parse_mode:'HTML'})});}
   catch(e){console.error('Telegram:',e);}
 }
@@ -775,7 +786,7 @@ function renderLehrer(){
     html+=`<div class="day-group"><div class="day-label">${fmtDate(date)}</div><div class="slot-grid">`;
     groups[date].forEach(s=>{
       const st=slotStatus(s);let badge='',extra='',actions='';
-      if(st==='booked'){badge=`<span class="badge badge-booked">Belegt</span>`;extra=`<span class="slot-name">👤 ${s.clear||'…'}</span>`;actions=`<div class="slot-actions"><button class="btn btn-ghost btn-sm" onclick="freeSlot('${s.id}')">Freigeben</button></div>`;}
+      if(st==='booked'){badge=`<span class="badge badge-booked">Belegt</span>`;extra=`<span class="slot-name">👤 ${s.clear||'…'}</span>`+`<span class="slot-note" style="font-size:11px;color:var(--muted);">${s.grund?'💬 '+s.grund:''}</span>`;actions=`<div class="slot-actions"><button class="btn btn-ghost btn-sm" onclick="freeSlot('${s.id}')">Freigeben</button></div>`;}
       else if(st==='blocked'){badge=`<span class="badge badge-blocked">Geblockt</span>`;actions=`<div class="slot-actions"><button class="btn btn-ghost btn-sm" onclick="unblockSlot('${s.id}')">Freigeben</button></div>`;}
       else if(st==='soon'){badge=`<span class="badge badge-soon">Kurzfristig</span>`;extra=`<span class="slot-note">Eltern können nicht selbst buchen</span>`;actions=`<div class="slot-actions"><button class="btn btn-warn btn-sm" onclick="manualBlock('${s.id}')">Blocken</button></div>`;}
       else if(st==='past'){badge=`<span class="badge badge-past">Vergangen</span>`;}
@@ -805,6 +816,7 @@ function renderEltern(){
           <button class="btn btn-ghost btn-sm" style="margin-top:5px;width:100%" onclick="showBookForm('${sid}')">Termin buchen</button>
           <div class="book-form" id="bf-${sid}">
             <input type="text" id="bi-${sid}" placeholder="Ihr Name (Vorname Nachname)" style="font-size:13px"/>
+            <input type="text" id="bg-${sid}" placeholder="Gesprächsgrund (z.B. Lernentwicklung)" maxlength="60" style="font-size:13px"/>
             <button class="btn btn-primary btn-sm" id="bb-${sid}" onclick="bookSlot('${s.id}')">Bestätigen</button>
           </div></div>`;
       }
