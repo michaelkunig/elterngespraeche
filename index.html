@@ -125,14 +125,10 @@ input:focus{outline:none;border-color:var(--accent)}
 .notice-banner-text strong{color:var(--text);font-weight:500}
 
 /* ── Monatskalender (Mini + Hover-Expand) ── */
-.cal-outer{position:relative;display:flex;justify-content:flex-end;margin-bottom:1rem}
-.cal-wrap{
-  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
-  box-shadow:var(--sh);overflow:hidden;
-  transition:width .25s ease, box-shadow .25s ease;
-}
+.cal-outer{margin-bottom:1rem}
+.cal-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
 /* Expand via JS-Klasse */
-.cal-inner{padding:.65rem .65rem .5rem;min-width:300px}
+.cal-inner{padding:.75rem}
 .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem}
 .cal-title{font-size:13px;font-weight:500;white-space:nowrap}
 .cal-nav{display:flex;gap:4px}
@@ -154,19 +150,6 @@ input:focus{outline:none;border-color:var(--accent)}
 .cal-leg-dot{width:9px;height:9px;border-radius:3px;flex-shrink:0}
 /* Mini-Ansicht: zeige nur Titelzeile wenn klein */
 /* Minimiert-Zustand via JS-Klasse */
-.cal-wrap.minimized .cal-inner{
-  display:flex;align-items:center;justify-content:center;
-  min-width:unset;padding:.4rem .5rem;
-}
-.cal-wrap.minimized .cal-header{margin:0;width:100%}
-.cal-wrap.minimized .cal-nav{display:none}
-.cal-wrap.minimized .cal-grid,
-.cal-wrap.minimized .cal-legend{display:none}
-.cal-wrap.minimized .cal-title{font-size:11px;text-align:center;width:100%}
-/* Expanded */
-.cal-wrap:not(.minimized){width:min(320px,100vw - 2rem);box-shadow:0 4px 24px rgba(0,0,0,.13);cursor:default;}
-.cal-wrap.minimized{width:120px;cursor:pointer;}
-</style>
 </head>
 <body>
 
@@ -214,18 +197,18 @@ input:focus{outline:none;border-color:var(--accent)}
       </div>
     </div>
     <div class="cal-outer">
-      <div class="cal-wrap" id="cal-wrap" tabindex="0">
+      <div class="cal-wrap" id="cal-wrap">
         <div class="cal-inner">
           <div class="cal-header">
-            <div class="cal-title" id="cal-title">Kalender</div>
+            <div class="cal-title" id="cal-title"></div>
             <div class="cal-nav">
-              <button onclick="calPrev()" title="Vorheriger Monat">&#8249;</button>
-              <button onclick="calNext()" title="Nächster Monat">&#8250;</button>
+              <button onclick="calPrev()">&#8249;</button>
+              <button onclick="calNext()">&#8250;</button>
             </div>
           </div>
           <div class="cal-grid" id="cal-grid"></div>
           <div class="cal-legend">
-            <div class="cal-leg-item"><div class="cal-leg-dot" style="background:var(--accent-bg);border:1px solid #b0d4c0"></div>Freie Termine</div>
+            <div class="cal-leg-item"><div class="cal-leg-dot" style="background:var(--accent-bg);border:1px solid #b0d4c0"></div>Freie Termine – anklicken zum Springen</div>
             <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#F0F0F0"></div>Alle belegt</div>
           </div>
         </div>
@@ -765,36 +748,16 @@ function renderCal(){
 }
 
 function scrollToDate(ds){
-  // Kalender-Hover kurz schließen erzwingen, dann scrollen
-  const wrap=document.getElementById('cal-wrap');
-  if(wrap)wrap.blur();
-  // Suche im Eltern-Slots-Bereich nach data-date
-  function doScroll(){
-    const el=document.getElementById('eltern-slots').querySelector('[data-date="'+ds+'"]');
-    if(el){
-      const y=el.getBoundingClientRect().top+window.scrollY-80;
-      window.scrollTo({top:y,behavior:'smooth'});
-    } else {
-      // Fallback: Slot existiert vielleicht noch nicht gerendert
-      console.warn('scrollToDate: kein Element für',ds);
-    }
+  const el=document.querySelector('[data-date="'+ds+'"]');
+  if(el){
+    const y=el.getBoundingClientRect().top+window.scrollY-70;
+    window.scrollTo({top:y,behavior:'smooth'});
   }
-  // Kleines Timeout damit Transition fertig ist
-  setTimeout(doScroll, 80);
 }
 window.scrollToDate=scrollToDate;
 
 // Kalender Hover-Expand per JS
-function initCalHover(){
-  const wrap=document.getElementById('cal-wrap');
-  if(!wrap)return;
-  wrap.classList.add('minimized');
-  wrap.addEventListener('mouseenter',()=>{wrap.classList.remove('minimized');});
-  wrap.addEventListener('mouseleave',()=>{wrap.classList.add('minimized');});
-  wrap.addEventListener('touchstart',()=>{
-    if(wrap.classList.contains('minimized'))wrap.classList.remove('minimized');
-  },{passive:true});
-}
+// Kalender ist immer vollständig sichtbar
 
 function render(){renderLehrer();renderEltern();renderCal();}
 
@@ -866,8 +829,7 @@ loadCfg();
 render();
 // Firebase direkt starten – Zugangsdaten sind fest eingebaut
 initFirebase();
-// Kalender-Hover initialisieren
-setTimeout(initCalHover, 100);
+
 </script>
 </body>
 </html>
