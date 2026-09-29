@@ -314,7 +314,7 @@ input:focus{outline:none;border-color:var(--accent)}
     </div>
 
     <div class="metrics" id="l-metrics"></div>
-    <div class="info-bar">ℹ️ Feiertage und gesperrte Tage sind automatisch ausgeblendet. Eltern können Termine erst ab dem 4. Tag buchen (z.B. Montag → frühestens Donnerstag). Frühere Termine sind als <strong>Kurzfristig</strong> markiert.</div>
+    <div class="info-bar">ℹ️ Feiertage und gesperrte Tage sind automatisch ausgeblendet. Eltern können Termine erst ab dem 4. Tag buchen (z.B. Montag → frühestens Donnerstag). Frühere Termine sind als <strong>Kurzfristig</strong> markiert. Ferien und Feiertage in Sachsen sind automatisch ausgeblendet.</div>
     <div id="lehrer-slots"></div>
   </div>
 </div>
@@ -334,7 +334,7 @@ const minBookDate=()=>{const d=new Date();d.setDate(d.getDate()+3);return dateSt
 const safe    =id=>id.replace(/[^a-zA-Z0-9_]/g,'_');
 const WD=['So','Mo','Di','Mi','Do','Fr','Sa'];
 const MO=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
-const fmtDate =ds=>{const d=new Date(ds+'T12:00:00');return`${WD[d.getDay()]}, ${d.getDate()}. ${MO[d.getMonth()]} 2026`;};
+const fmtDate =ds=>{const d=new Date(ds+'T12:00:00');return`${WD[d.getDay()]}, ${d.getDate()}. ${MO[d.getMonth()]} ${d.getFullYear()}`;};
 const groupBy =arr=>{const g={};arr.forEach(s=>{if(!g[s.date])g[s.date]=[];g[s.date].push(s);});return g;};
 const setVal  =(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
 const showMsg =(id,txt,type,ms=6000)=>{
@@ -386,19 +386,45 @@ async function decrypt(b64){
 }
 
 /* ── Slot-Generierung ── */
-const BLOCKED=new Set(['2026-05-14','2026-05-25','2026-06-05','2026-06-08','2026-06-09',
-  '2026-06-11','2026-06-17','2026-06-18','2026-06-19','2026-06-30','2026-07-03']);
+const BLOCKED=new Set([
+  '2026-10-12','2026-10-13','2026-10-14','2026-10-15','2026-10-16',
+  '2026-10-17','2026-10-18','2026-10-19','2026-10-20','2026-10-21',
+  '2026-10-22','2026-10-23','2026-10-24','2026-11-18','2026-12-10',
+  '2026-12-23','2026-12-24','2026-12-25','2026-12-26','2026-12-27',
+  '2026-12-28','2026-12-29','2026-12-30','2026-12-31','2027-01-01',
+  '2027-01-02','2027-02-08','2027-02-09','2027-02-10','2027-02-11',
+  '2027-02-12','2027-02-13','2027-02-14','2027-02-15','2027-02-16',
+  '2027-02-17','2027-02-18','2027-02-19','2027-03-04','2027-03-22',
+  '2027-03-23','2027-03-24','2027-03-25','2027-03-26','2027-03-27',
+  '2027-03-28','2027-03-29','2027-03-30','2027-03-31','2027-04-01',
+  '2027-04-02','2027-05-07','2027-05-13','2027-05-15','2027-05-16',
+  '2027-05-17','2027-05-18','2027-05-24','2027-07-10','2027-07-11',
+  '2027-07-12','2027-07-13','2027-07-14','2027-07-15','2027-07-16',
+  '2027-07-17','2027-07-18','2027-07-19','2027-07-20','2027-07-21',
+  '2027-07-22','2027-07-23','2027-07-24','2027-07-25','2027-07-26',
+  '2027-07-27','2027-07-28','2027-07-29','2027-07-30','2027-07-31',
+  '2027-08-01','2027-08-02','2027-08-03','2027-08-04','2027-08-05',
+  '2027-08-06','2027-08-07','2027-08-08','2027-08-09','2027-08-10',
+  '2027-08-11','2027-08-12','2027-08-13','2027-08-14','2027-08-15',
+  '2027-08-16','2027-08-17','2027-08-18','2027-08-19','2027-08-20',
+  '2027-08-21','2027-08-22','2027-08-23','2027-08-24','2027-08-25',
+  '2027-08-26','2027-08-27','2027-08-28','2027-08-29','2027-08-30',
+  '2027-08-31',
+]);
 
 function generateSlots(){
   const slots=[];
-  const end=new Date(2026,6,3);
-  for(let d=new Date(2026,4,18);d<=end;d.setDate(d.getDate()+1)){
+  // Schuljahr 2026/27: Start nach Sommerferien (Mo 17.08.2026), Ende vor Sommerferien 2027 (09.07.2027)
+  const start=new Date(2026,7,17);
+  const end  =new Date(2027,2,25); // Letzter Buchungstag: 25.03.2027 (vor Osterferien)
+  for(let d=new Date(start);d<=end;d.setDate(d.getDate()+1)){
     const ds=dateStr(d);if(BLOCKED.has(ds))continue;
     const dow=d.getDay();
     let wins=[];
-    if(dow===1||dow===2)wins=[{from:'13:30',to:'14:30'}];
-    else if(dow===3||dow===4)wins=[{from:'08:30',to:'09:00'}];
-    else if(dow===5)wins=[{from:'08:30',to:'12:00'},{from:'13:30',to:'14:30'}];
+    // Mo, Di: keine Termine
+    if(dow===3)wins=[{from:'08:30',to:'10:15'}];       // Mi 08:30–10:15
+    else if(dow===4)wins=[{from:'13:30',to:'14:30'}];  // Do 13:30–14:30
+    else if(dow===5)wins=[{from:'08:30',to:'10:15'}];  // Fr 08:30–10:15
     for(const w of wins){
       let cur=w.from;
       while(addMin(cur,30)<=w.to){
