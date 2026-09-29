@@ -449,25 +449,27 @@ function loadCfg(){
   try{emailjs.init(cfg.ejsKey);}catch(e){console.warn('EmailJS init:',e);}
 }
 function saveCfg(){
-  cfg.fbKey      =document.getElementById('cfg-fb-apikey').value.trim();
-  cfg.fbProject  =document.getElementById('cfg-fb-projectid').value.trim();
-  cfg.fbApp      =document.getElementById('cfg-fb-appid').value.trim();
-  cfg.email      =document.getElementById('cfg-email').value.trim();
-  cfg.ejsService =document.getElementById('cfg-ejs-service').value.trim();
-  cfg.ejsTemplate=document.getElementById('cfg-ejs-template').value.trim();
-  cfg.ejsKey     =document.getElementById('cfg-ejs-key').value.trim();
-  cfg.tgToken    =document.getElementById('cfg-tg-token').value.trim();
-  cfg.tgChat     =document.getElementById('cfg-tg-chat').value.trim();
-  localStorage.setItem(CFG_KEY,JSON.stringify(cfg));
+  // Nur Felder lesen die im HTML vorhanden sind
+  const getV=id=>{const el=document.getElementById(id);return el?el.value.trim():null;};
+  const email=getV('cfg-email'); if(email!==null)cfg.email=email;
+  const ejsService=getV('cfg-ejs-service'); if(ejsService!==null)cfg.ejsService=ejsService;
+  const ejsTemplate=getV('cfg-ejs-template'); if(ejsTemplate!==null)cfg.ejsTemplate=ejsTemplate;
+  const ejsKey=getV('cfg-ejs-key'); if(ejsKey!==null)cfg.ejsKey=ejsKey;
+  const tgToken=getV('cfg-tg-token'); if(tgToken!==null)cfg.tgToken=tgToken;
+  const tgChat=getV('cfg-tg-chat'); if(tgChat!==null)cfg.tgChat=tgChat;
+  localStorage.setItem(CFG_KEY,JSON.stringify({pw:cfg.pw,tgToken:cfg.tgToken,tgChat:cfg.tgChat}));
   if(cfg.ejsKey)emailjs.init(cfg.ejsKey);
 }
 window.saveCfg=saveCfg;
 
 function applyConfig(){
-  setVal('cfg-fb-apikey',cfg.fbKey);setVal('cfg-fb-projectid',cfg.fbProject);
-  setVal('cfg-fb-appid',cfg.fbApp);setVal('cfg-email',cfg.email);
-  setVal('cfg-ejs-service',cfg.ejsService);setVal('cfg-ejs-template',cfg.ejsTemplate);
-  setVal('cfg-ejs-key',cfg.ejsKey);setVal('cfg-tg-token',cfg.tgToken);setVal('cfg-tg-chat',cfg.tgChat);
+  // Nur vorhandene Felder befüllen
+  setVal('cfg-email',cfg.email);
+  setVal('cfg-ejs-service',cfg.ejsService);
+  setVal('cfg-ejs-template',cfg.ejsTemplate);
+  setVal('cfg-ejs-key',cfg.ejsKey);
+  setVal('cfg-tg-token',cfg.tgToken);
+  setVal('cfg-tg-chat',cfg.tgChat);
   if(cfg.ejsKey)emailjs.init(cfg.ejsKey);
 }
 
@@ -660,7 +662,7 @@ async function sendEmail(slot,name){
     const result=await emailjs.send(cfg.ejsService,cfg.ejsTemplate,{
       to_email:    cfg.email,
       parent_name: name,
-      grund:       grund,
+      grund:       slot.grund||'',
       date_label:  fmtDate(slot.date),
       time_from:   slot.from,
       time_to:     slot.to,
